@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import ServicePage from './pages/ServicePage'
+import Kitt from './pages/Kitt'
 
 export default function App() {
   return (
@@ -8,6 +9,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/servicios/:slug" element={<ServicePage />} />
+        <Route path="/kitt" element={<Kitt />} />
       </Routes>
     </BrowserRouter>
   )
