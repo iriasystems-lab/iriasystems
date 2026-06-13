@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { MessageCircle, Mail, Instagram } from 'lucide-react'
+import { MessageCircle, Instagram } from 'lucide-react'
 
 const WA_URL = 'https://wa.me/34643380805?text=Hola%20Iryna%2C%20me%20interesa%20conocer%20m%C3%A1s%20sobre%20tus%20servicios'
 
@@ -66,14 +66,6 @@ export default function Contact() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
-          <a
-            href="mailto:iriasystems@gmail.com"
-            className="flex items-center gap-2 text-warm-gray hover:text-gold-dark transition-colors text-sm"
-          >
-            <Mail size={16} />
-            iriasystems@gmail.com
-          </a>
-          <span className="hidden sm:block text-champagne">·</span>
           <a
             href="https://instagram.com/iriasystems"
             target="_blank"
