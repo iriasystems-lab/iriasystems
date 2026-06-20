@@ -223,7 +223,7 @@ export async function askKitt(text, obd, apiKey, isSimulated = false, extras = {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short',
   })
-  const timeBlock = `Fecha y hora actual: ${timeStr} (zona horaria: ${tz})\n`
+  const timeBlock = `Fecha y hora actual (SIEMPRE usa este valor — ignora cualquier hora del historial): ${timeStr} (zona horaria: ${tz})\n`
   const routeBlock    = routeCtx
     ? `\nRuta activa → ${routeCtx.dest} · ${routeCtx.distKm}km · ${routeCtx.durMin}min · ${routeCtx.liters}L (${routeCtx.euros}€) · ${routeCtx.tipo}${routeCtx.elev ? ` · ↑${routeCtx.elev.gainM}m ↓${routeCtx.elev.lossM}m` : ''}\n`
     : ''
