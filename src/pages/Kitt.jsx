@@ -940,17 +940,13 @@ export default function Kitt() {
       }
       setSpeaking(false); speakingRef.current = false
       postEnd?.()  // trivia timer, chained speech, etc.
-      if (!pausedRef.current && !thinkingRef.current) setTimeout(() => startListeningRef.current?.(), 400)
+      // 1.5s delay — lets speaker audio fully die out before mic opens
+      if (!pausedRef.current && !thinkingRef.current) setTimeout(() => startListeningRef.current?.(), 1500)
     }
     const onStart = () => {
       setSpeaking(true); speakingRef.current = true
       speakStartTimeRef.current = Date.now()
-      // Barge-in: start listening 1.5s into ElevenLabs TTS
-      if (apiKey && voiceId) {
-        setTimeout(() => {
-          if (speakingRef.current && usingElevenLabsRef.current) startBargeInRef.current?.()
-        }, 1500)
-      }
+      // Barge-in disabled — mic picks up speaker audio and causes self-loop
     }
     if (apiKey && voiceId) {
       usingElevenLabsRef.current = true
@@ -967,8 +963,8 @@ export default function Kitt() {
   // ── STT ────────────────────────────────────────────────────────────────────
   const startListening = useCallback(() => {
     if (pausedRef.current || listeningRef.current || thinkingRef.current) return
-    // Block if speaking via browser TTS; allow if ElevenLabs is playing (barge-in)
-    if (speakingRef.current && !usingElevenLabsRef.current) return
+    // Never listen while Kitt is speaking — prevents mic from picking up speaker audio
+    if (speakingRef.current) return
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) return
     try {
@@ -987,15 +983,6 @@ export default function Kitt() {
       rec.onresult = (e) => {
         const t = e.results[0][0].transcript
         if (!t.trim()) return
-        // Echo protection: ignore anything captured in the first 1 s after Kitt starts speaking
-        if (usingElevenLabsRef.current && Date.now() - speakStartTimeRef.current < 1000) return
-        // Barge-in: pause ElevenLabs immediately before processing user speech
-        if (usingElevenLabsRef.current && elevenLabsAudioRef.current) {
-          elevenLabsAudioRef.current.pause()
-          elevenLabsAudioRef.current = null
-          usingElevenLabsRef.current = false
-          setSpeaking(false); speakingRef.current = false
-        }
         handleInputRef.current?.(t.trim())
       }
       recRef.current = rec; rec.start()
