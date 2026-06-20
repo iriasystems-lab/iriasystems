@@ -856,6 +856,7 @@ export default function Kitt() {
   const nextTriviaQuestionRef = useRef(null)
   const audioCtxRef        = useRef(null)
   const introMusicRef      = useRef(null)
+  const introAudioBufRef   = useRef(null)
   const bargeInRecRef      = useRef(null)  // barge-in STT recognition instance
   const startBargeInRef    = useRef(null)
 
@@ -873,6 +874,14 @@ export default function Kitt() {
     if (typeof speechSynthesis === 'undefined') return
     speechSynthesis.getVoices()
     speechSynthesis.addEventListener('voiceschanged', () => speechSynthesis.getVoices())
+  }, [])
+
+  // Preload intro music as ArrayBuffer so it's ready before user gesture
+  useEffect(() => {
+    fetch('/intro-corta-coche-fantastico.MP3')
+      .then(r => r.ok ? r.arrayBuffer() : null)
+      .then(buf => { if (buf) introAudioBufRef.current = buf })
+      .catch(() => {})
   }, [])
 
   // PKCE: exchange auth code when Spotify redirects back with ?code=
@@ -1517,14 +1526,23 @@ export default function Kitt() {
       audioCtxRef.current.resume().catch(() => {})
     } catch (_) {}
 
-    // Play intro music on loop until Kitt speaks
+    // Play intro music via AudioContext (bypasses iOS autoplay restrictions)
     try {
-      const music = new Audio('/intro-corta-coche-fantastico.MP3')
-      music.loop = true
-      music.volume = 0.55
-      music.onerror = () => { introMusicRef.current = null }
-      music.play().catch(() => {})
-      introMusicRef.current = music
+      const ctx = audioCtxRef.current
+      const buf = introAudioBufRef.current
+      if (ctx && buf) {
+        ctx.decodeAudioData(buf.slice(0), decoded => {
+          const source = ctx.createBufferSource()
+          source.buffer = decoded
+          source.loop = true
+          const gain = ctx.createGain()
+          gain.gain.value = 0.55
+          source.connect(gain)
+          gain.connect(ctx.destination)
+          source.start(0)
+          introMusicRef.current = { source, gain }
+        }, () => {})
+      }
     } catch (_) {}
 
     setUnlocked(true); setBooting(true)
@@ -1537,14 +1555,16 @@ export default function Kitt() {
       const withGreeting = [...prev, { role: 'kitt', text: greeting, ts: Date.now() }]
       return withGreeting.slice(-200)
     })
-    if (introMusicRef.current) {
-      const music = introMusicRef.current
-      let vol = music.volume
+    if (introMusicRef.current?.source) {
+      const { source, gain } = introMusicRef.current
+      let vol = 0.55
       const fadeOut = setInterval(() => {
         vol = Math.max(0, vol - 0.12)
-        music.volume = vol
+        gain.gain.value = vol
         if (vol <= 0) {
-          music.pause(); music.src = ''; clearInterval(fadeOut); introMusicRef.current = null
+          try { source.stop() } catch (_) {}
+          clearInterval(fadeOut)
+          introMusicRef.current = null
         }
       }, 40)
       setTimeout(() => speak(greeting), 350)
