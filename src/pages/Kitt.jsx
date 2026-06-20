@@ -7,7 +7,6 @@ import {
   extractMusicIntent, openSpotifySearch,
 } from '../lib/spotify'
 import { askKitt } from '../lib/claude'
-import { buildLiveContext } from '../lib/agent-context'
 import { getWeatherByCoords, getWeatherForecast, weatherToSpeech, forecastToSpeech, extractWeatherIntent } from '../lib/weather'
 import { OBDWifi } from '../lib/obd-wifi'
 import { evaluateRules, getRulePhrase, isOfcoActive, DTC_CODES } from '../lib/obd-advisor'
@@ -847,9 +846,6 @@ export default function Kitt() {
   const bargeInRecRef      = useRef(null)  // barge-in STT recognition instance
   const startBargeInRef    = useRef(null)
 
-  // Agent context refs
-  const liveContextRef     = useRef(null)
-  const liveCtxFetchedRef  = useRef({ ts: 0 }) // {ts, lat, lon}
 
   // Proactive OBD advisor tracking refs
   const ofcoStartRef    = useRef(null)
@@ -1459,7 +1455,7 @@ export default function Kitt() {
           location: userPosRef.current ? `${userPosRef.current.lat.toFixed(3)},${userPosRef.current.lon.toFixed(3)}` : null,
           routeCtx,
           history: messagesRef.current,
-          liveCtx: liveContextRef.current,
+          gpsPos:  userPosRef.current ?? null,
         })
         if (!response) response = getKittResponse(text, obdRef.current, isSimulated)
       } catch (err) {
@@ -1653,18 +1649,6 @@ export default function Kitt() {
     }, 5000)
     return () => clearInterval(id)
   }, [speak])
-
-  // ── Agent context — proactive preload weather + stations on GPS ───────────
-  useEffect(() => {
-    if (!userPos) return
-    const now = Date.now()
-    const prev = liveCtxFetchedRef.current
-    if (prev.ts > 0 && now - prev.ts < 30 * 60 * 1000) return // throttle: once per 30 min
-    liveCtxFetchedRef.current = { ts: now }
-    buildLiveContext(userPos.lat, userPos.lon)
-      .then(ctx => { liveContextRef.current = ctx || null })
-      .catch(() => {})
-  }, [userPos]) // eslint-disable-line
 
   // ── History persistence ───────────────────────────────────────────────────
   useEffect(() => {
