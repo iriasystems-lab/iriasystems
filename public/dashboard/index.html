@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>K.I.T.T.</title>
+<link rel="stylesheet" href="./dashboard.css">
+</head>
+<body>
+
+<div id="topbar">
+  <div id="clock">00:00</div>
+  <div class="srow">
+    <div class="stat"><span class="dot r" id="st1"></span>TURBO</div>
+    <div class="stat"><span class="dot g"></span>SISTEMA</div>
+    <div class="stat"><span class="dot a"></span>ARMAS</div>
+    <div class="stat"><span class="dot r" id="st2"></span>NITRO</div>
+  </div>
+  <div class="sysicons">
+    <svg width="20" height="13" viewBox="0 0 20 14"><rect x="0" y="9" width="3" height="5" fill="#888"/><rect x="5" y="6" width="3" height="8" fill="#888"/><rect x="10" y="3" width="3" height="11" fill="#888"/><rect x="15" y="0" width="3" height="14" fill="#888"/></svg>
+    <svg width="26" height="13" viewBox="0 0 26 14"><rect x=".5" y="1.5" width="22" height="11" rx="2" fill="none" stroke="#888"/><rect x="23" y="5" width="2.5" height="4" rx="1" fill="#888"/><rect x="2" y="3" width="16" height="8" rx="1" fill="var(--green)"/></svg>
+  </div>
+</div>
+
+<div id="body">
+
+  <div id="col-left">
+
+    <!-- VELOCIDAD -->
+    <div class="panel" id="vel-panel">
+      <div class="ptitle">VELOCIDAD</div>
+      <div class="vel-body">
+        <div id="velBars"></div>
+        <div class="vel-right">
+          <div class="vel-seg">
+            <span class="ghost">888</span>
+            <span class="real" id="speedVal">000</span>
+          </div>
+          <div class="vel-unit">km/h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPM -->
+    <div class="panel" id="rpm-panel">
+      <svg id="rpmArc" viewBox="0 0 380 115" preserveAspectRatio="none"></svg>
+    </div>
+
+    <!-- GAUGES -->
+    <div class="panel" id="gauges-panel">
+      <div class="gauges-grid">
+        <div class="mini">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--green)" stroke-width="1.5"><rect x="3" y="2" width="9" height="16" rx="1"/><path d="M12 6h3l2 2v6a1.5 1.5 0 01-3 0V9h-2"/><rect x="5" y="4" width="5" height="4" fill="var(--green)" stroke="none"/></svg>
+          <div class="mini-info">
+            <div class="mt">COMBUSTIBLE</div>
+            <div class="mv g" id="fuelVal">74%</div>
+            <div class="mbar" id="fuelBar"></div>
+          </div>
+        </div>
+        <div class="mini">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.5"><path d="M8 3a2 2 0 014 0v8a3.5 3.5 0 11-4 0z"/><circle cx="10" cy="14" r="1.8" fill="var(--red)" stroke="none"/></svg>
+          <div class="mini-info">
+            <div class="mt">TEMP MOTOR</div>
+            <div class="mv r" id="tempVal">38C</div>
+            <div class="mbar" id="tempBar"></div>
+          </div>
+        </div>
+        <div class="mini">
+          <svg width="18" height="18" viewBox="0 0 22 20" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M3 10h16M3 10l4-4M3 10l4 4"/><circle cx="17" cy="10" r="3"/></svg>
+          <div class="mini-info">
+            <div class="mt">AUTONOMIA</div>
+            <div class="mv a" id="rangeVal">420km</div>
+            <div class="mbar" id="rangeBar"></div>
+          </div>
+        </div>
+        <div class="mini">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#60d0ff" stroke-width="1.5"><path d="M10 3a2 2 0 014 0v7a3.5 3.5 0 11-4 0z"/><circle cx="12" cy="14" r="1.8" fill="#60d0ff" stroke="none"/></svg>
+          <div class="mini-info">
+            <div class="mt">TEMP EXT.</div>
+            <div class="mv c" id="extTempVal">22.0C</div>
+            <div class="mbar" id="extTempBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /col-left -->
+
+  <div id="col-center">
+    <div class="panel" id="mod-panel">
+      <div class="kr-title">KNIGHT RIDER</div>
+      <div class="modtop">
+        <div class="sidecol">
+          <div class="pill">AIR</div>
+          <div class="pill">OIL</div>
+          <div class="pill rp">P1</div>
+          <div class="pill rp">P2</div>
+        </div>
+        <div class="modcenter">
+          <div id="voicebars"></div>
+          <div id="kittStatus"></div>
+          <div id="kittHint">TOCA PARA HABLAR</div>
+        </div>
+        <div class="sidecol">
+          <div class="pill">S1</div>
+          <div class="pill">S2</div>
+          <div class="pill rp">P3</div>
+          <div class="pill rp">P4</div>
+        </div>
+      </div>
+      <div class="modes-row">
+        <div class="mode active" data-mode="NORMAL">NORMAL CRUISE</div>
+        <div class="mode" data-mode="AUTO">AUTO CRUISE</div>
+        <div class="mode" data-mode="PURSUIT">PURSUIT</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- Config local con credenciales (no versionado en git) -->
+<script src="./config.js"></script>
+<script src="./kitt-dashboard.js"></script>
+</body>
+</html>
