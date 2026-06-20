@@ -843,6 +843,7 @@ export default function Kitt() {
   const triviaTopicRef     = useRef('cultura general')
   const nextTriviaQuestionRef = useRef(null)
   const audioCtxRef        = useRef(null)
+  const introMusicRef      = useRef(null)
   const bargeInRecRef      = useRef(null)  // barge-in STT recognition instance
   const startBargeInRef    = useRef(null)
 
@@ -1504,6 +1505,16 @@ export default function Kitt() {
       audioCtxRef.current.resume().catch(() => {})
     } catch (_) {}
 
+    // Play intro music on loop until Kitt speaks
+    try {
+      const music = new Audio('/intro-music.mp3')
+      music.loop = true
+      music.volume = 0.55
+      music.onerror = () => { introMusicRef.current = null }
+      music.play().catch(() => {})
+      introMusicRef.current = music
+    } catch (_) {}
+
     setUnlocked(true); setBooting(true)
   }, [])
 
@@ -1514,7 +1525,20 @@ export default function Kitt() {
       const withGreeting = [...prev, { role: 'kitt', text: greeting, ts: Date.now() }]
       return withGreeting.slice(-200)
     })
-    speak(greeting)
+    if (introMusicRef.current) {
+      const music = introMusicRef.current
+      let vol = music.volume
+      const fadeOut = setInterval(() => {
+        vol = Math.max(0, vol - 0.12)
+        music.volume = vol
+        if (vol <= 0) {
+          music.pause(); music.src = ''; clearInterval(fadeOut); introMusicRef.current = null
+        }
+      }, 40)
+      setTimeout(() => speak(greeting), 350)
+    } else {
+      speak(greeting)
+    }
   }, [speak])
 
   // ── OBD WiFi ───────────────────────────────────────────────────────────────
