@@ -44,6 +44,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/worldtime"
+  to = "/.netlify/functions/worldtime"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
