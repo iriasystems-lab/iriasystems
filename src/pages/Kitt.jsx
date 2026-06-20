@@ -1519,7 +1519,7 @@ export default function Kitt() {
 
     // Play intro music on loop until Kitt speaks
     try {
-      const music = new Audio('/intro%20corta%20coche%20fantastico.MP3')
+      const music = new Audio('/intro-corta-coche-fantastico.MP3')
       music.loop = true
       music.volume = 0.55
       music.onerror = () => { introMusicRef.current = null }
