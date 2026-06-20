@@ -234,15 +234,27 @@ function consumoActual(speed) {
 }
 
 
-function buildGreeting(obd, isSimulated) {
-  const h = new Date().getHours()
-  const saludo = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'
-  const f = Math.round(obd.fuel)
-  const litros = calcLitrosRestantes(f), km = calcRange(f)
-  const simMsg = isSimulated
-    ? 'No tengo el OBD conectado, así que los datos del motor son estimados. '
-    : ''
-  return `${saludo}, Cristian. KITT activo. ${simMsg}Tienes unos ${litros} litros en el depósito, autonomía estimada de ${km} kilómetros. ¿Qué necesitas?`
+function buildGreeting() {
+  const hour = parseInt(
+    new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: 'numeric', hour12: false }).format(new Date()),
+    10
+  )
+  const saludo = hour >= 6 && hour < 14 ? 'Buenos días'
+    : hour >= 14 && hour < 21 ? 'Buenas tardes'
+    : 'Buenas noches'
+
+  const variants = [
+    `${saludo}, Cristian. Sistemas en línea. Cuéntame a dónde vamos y te asisto en todo el trayecto.`,
+    `${saludo}, Cristian. Kitt conectado y operativo. Di el destino y me encargo del resto.`,
+    `${saludo}, Cristian. Todos los sistemas activos. ¿A dónde nos lleva hoy la ruta?`,
+    `${saludo}. Cristian, estoy aquí. Dime a dónde vamos y viajamos juntos.`,
+    `${saludo}, Cristian. En línea y listo para acompañarte. El camino es tuyo — yo vigilo que llegues bien.`,
+    `${saludo}, Cristian. Conectado y a tu disposición. ¿Qué ruta tienes en mente?`,
+    `${saludo}. De vuelta al volante, Cristian. Cuéntame el plan y empezamos.`,
+    `${saludo}, Cristian. Kitt activo. El motor, la ruta, el tiempo... todo bajo control. ¿Empezamos?`,
+  ]
+
+  return variants[Math.floor(Math.random() * variants.length)]
 }
 
 // ─── Fallback responses (sin Claude API) ──────────────────────────────────────
@@ -1520,7 +1532,7 @@ export default function Kitt() {
 
   const handleBootComplete = useCallback(() => {
     setBooting(false)
-    const greeting = buildGreeting(obdRef.current, obdStatusRef.current !== 'connected')
+    const greeting = buildGreeting()
     setMessages(prev => {
       const withGreeting = [...prev, { role: 'kitt', text: greeting, ts: Date.now() }]
       return withGreeting.slice(-200)
