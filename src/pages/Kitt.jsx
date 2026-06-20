@@ -1910,31 +1910,81 @@ export default function Kitt() {
     URL.revokeObjectURL(url)
   }, [])
 
-  const eq = speaking
+  // ── Clock ────────────────────────────────────────────────────────────────
+  const [clockTime, setClockTime] = useState(() => {
+    const d = new Date()
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')
+  })
+  useEffect(() => {
+    const id = setInterval(() => {
+      const d = new Date()
+      setClockTime(String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'))
+    }, 15000)
+    return () => clearInterval(id)
+  }, [])
 
-  // ── Unlock screen ─────────────────────────────────────────────────────────
+  // ── Pill button handler ──────────────────────────────────────────────────
+  const handlePill = useCallback((pill) => {
+    const obdData = obdRef.current
+    switch (pill) {
+      case 'AIR': speak('Climatización activada.'); break
+      case 'OIL': speak(`Aceite del motor en nivel correcto. Motor a ${Math.round(obdData.temp)} grados, régimen ${Math.round(obdData.rpm)} RPM. Sin alertas en el B38.`); break
+      case 'P1':  togglePause(); break
+      case 'P2':  setShowSettings(true); break
+      case 'S1':  speak('Procesando ruta al destino principal.'); break
+      case 'S2':  speak('Procesando ruta al destino secundario.'); break
+      case 'P3':  obdStatus === 'connected' ? disconnectOBD() : connectOBD(); break
+      case 'P4':  exportTraining(); break
+      default: break
+    }
+  }, [speak, togglePause, obdStatus, connectOBD, disconnectOBD, exportTraining])
+
+  // ── Voice area tap — interrupt Kitt + start STT ──────────────────────────
+  const handleVoiceTap = useCallback(() => {
+    if (elevenLabsAudioRef.current) {
+      elevenLabsAudioRef.current.pause()
+      elevenLabsAudioRef.current = null
+      usingElevenLabsRef.current = false
+    }
+    window.speechSynthesis?.cancel()
+    setSpeaking(false); speakingRef.current = false
+    if (!pausedRef.current) setTimeout(() => startListeningRef.current?.(), 120)
+  }, [])
+
+  // ── kitt status text for display ─────────────────────────────────────────
+  const kittStatusText = speaking ? 'KITT HABLANDO'
+    : thinking ? 'PROCESANDO...'
+    : listening ? 'ESCUCHANDO...'
+    : paused ? 'EN PAUSA'
+    : 'KITT ACTIVO'
+
+  const kittHintText = listening ? '' : speaking ? '' : 'TOCA PARA HABLAR'
+
+  // ── Unlock screen ────────────────────────────────────────────────────────
   if (!unlocked) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center"
-      style={{ background: '#000', fontFamily: "'Courier New',monospace" }}>
-      <div className="pointer-events-none fixed inset-0 opacity-[0.04]"
-        style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,1) 2px,rgba(255,255,255,1) 4px)' }} />
-      <h1 className="text-4xl font-bold tracking-[0.4em] text-orange-500 mb-3"
-        style={{ textShadow: '0 0 24px rgba(255,120,0,0.9)' }}>K·I·T·T</h1>
-      <p className="text-[9px] tracking-[0.18em] text-orange-900 mb-16 font-mono">AGENTE IA · VEHÍCULO DE CRISTIAN</p>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#000', fontFamily: "'Eurostile',sans-serif" }}>
+      <div style={{ position: 'fixed', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,1) 2px,rgba(255,255,255,1) 4px)', pointerEvents: 'none' }} />
+      <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '0.4em', color: '#f97316', marginBottom: 12, textShadow: '0 0 24px rgba(255,120,0,0.9)' }}>K·I·T·T</h1>
+      <p style={{ fontSize: 9, letterSpacing: '0.18em', color: '#7c2d12', marginBottom: 64, fontFamily: 'monospace' }}>AGENTE IA · VEHÍCULO DE CRISTIAN</p>
       <motion.button onClick={handleUnlock} whileTap={{ scale: 0.93 }}
         animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }}
-        className="font-mono font-bold tracking-[0.2em] text-sm text-orange-500 border border-orange-700 px-10 py-4 rounded-lg"
-        style={{ boxShadow: '0 0 20px rgba(255,80,0,0.3)' }}>
+        style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.2em', fontSize: 14, color: '#f97316', border: '1px solid #9a3412', padding: '16px 40px', borderRadius: 8, background: 'transparent', cursor: 'pointer', boxShadow: '0 0 20px rgba(255,80,0,0.3)' }}>
         TOQUE PARA INICIAR
       </motion.button>
     </div>
   )
 
-  // ── Main UI ───────────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-4 max-w-[420px] mx-auto"
-      style={{ background: '#000', fontFamily: "'Courier New',monospace" }}>
+  // ── Dashboard range / ext temp ────────────────────────────────────────────
+  const fuelRange = calcRange(obd.fuel)
 
+  // ── Main Dashboard ────────────────────────────────────────────────────────
+  return (
+    <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: '#050505', overflow: 'hidden', fontFamily: "'Eurostile',sans-serif", color: '#ddd' }}>
+
+      {/* Scanlines */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 999, background: 'repeating-linear-gradient(0deg,transparent 0px,transparent 2px,rgba(0,0,0,.08) 3px,transparent 4px)' }} />
+
+      {/* Overlays */}
       <AnimatePresence>
         {booting      && <BootScreen onComplete={handleBootComplete} obdConnected={obdStatus === 'connected'} />}
         {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} onSpotifyAuth={handleSpotifyAuth} onExportTraining={exportTraining} obdStatus={obdStatus} onConnectOBD={connectOBD} onDisconnectOBD={disconnectOBD} />}
@@ -1942,194 +1992,207 @@ export default function Kitt() {
         {pendingNav   && <NavOverlay nav={pendingNav} onOpen={openNavigation} onClose={() => setPendingNav(null)} />}
       </AnimatePresence>
 
-      <div className="pointer-events-none fixed inset-0 z-50 opacity-[0.04]"
-        style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,1) 2px,rgba(255,255,255,1) 4px)' }} />
-
-      {/* Header */}
-      <div className="w-full text-center pt-1 relative">
-        <button onClick={() => setShowSettings(true)} className="absolute right-0 top-0 text-orange-900 hover:text-orange-600 text-xl p-1">⚙</button>
-        <h1 className="text-3xl font-bold tracking-[0.35em] text-orange-500" style={{ textShadow: '0 0 18px rgba(255,120,0,0.7)' }}>K·I·T·T</h1>
-        <p className="text-[9px] tracking-[0.18em] text-orange-900 mt-0.5">AGENTE IA · VEHÍCULO DE CRISTIAN</p>
-        <div className="flex items-center justify-center gap-2 mt-1.5">
-          <motion.div animate={{ scale: eq ? [1, 1.4, 1] : 1 }} transition={{ repeat: Infinity, duration: 0.6 }}
-            className={`w-2 h-2 rounded-full ${speaking ? 'bg-orange-500' : thinking ? 'bg-blue-500' : listening ? 'bg-yellow-400' : paused ? 'bg-gray-600' : 'bg-green-500'}`}
-            style={{ boxShadow: speaking ? '0 0 8px rgba(255,120,0,1)' : thinking ? '0 0 8px rgba(59,130,246,1)' : listening ? '0 0 8px rgba(234,179,8,1)' : 'none' }} />
-          <span className="text-[10px] tracking-widest text-gray-500">
-            {speaking ? 'KITT HABLANDO' : thinking ? 'PROCESANDO...' : listening ? 'ESCUCHANDO...' : paused ? 'EN PAUSA' : 'LISTO'}
-          </span>
-          {obdStatus === 'connected'
-            ? <span className="text-[8px] font-bold font-mono tracking-wider text-red-500 border border-red-800 px-1 rounded"
-                style={{ boxShadow: '0 0 6px rgba(220,38,38,0.5)' }}>OBD LIVE</span>
-            : <span className="text-[8px] font-mono tracking-wider text-gray-700 border border-gray-800 px-1 rounded">SIM</span>
-          }
-        </div>
-      </div>
-
-      {/* Equalizer */}
-      <div className="w-full mt-3 rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(180,60,0,0.35)' }}>
-        <Equalizer active={eq} />
-      </div>
-
-      {/* Mode Buttons */}
-      <div className="w-full grid grid-cols-3 gap-2 mt-3">
-        {MODES.map(m => <ModeButton key={m.id} mode={m} active={activeMode === m.id} onClick={setActiveMode} />)}
-      </div>
-
-      {/* OBD Dashboard */}
-      <div className="w-full grid grid-cols-3 gap-2 mt-3">
-        <Gauge label="VELOCIDAD"   value={obd.speed}                  unit="km/h" warn={obd.speed > 120} />
-        <Gauge label="RPM"         value={(obd.rpm / 1000).toFixed(1)} unit="×1k" warn={obd.rpm > 5500} />
-        <Gauge label="COMBUSTIBLE" value={`${Math.round(obd.fuel)}%`} unit="⛽"   warn={obd.fuel < 15} />
-        <Gauge label="MOTOR"       value={`${Math.round(obd.temp)}°`} unit="°C"   warn={obd.temp > 92} />
-        <Gauge label="BATERÍA"     value={obd.battery}                 unit="V"    warn={obd.battery < 12.1} />
-        <Gauge label="MARCHA"      value={obd.gear}                    unit="—"    warn={false} />
-      </div>
-
-      {/* OBD Scenario Selector */}
-      <div className="w-full mt-2">
-        <p className="text-[8px] text-gray-800 tracking-[0.2em] font-mono mb-1.5">ESCENARIO DE PRUEBA</p>
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {OBD_SCENARIOS.map(sc => (
-            <button key={sc.id} onClick={() => setScenario(sc.id)}
-              className={`flex-shrink-0 px-2.5 py-1 rounded text-[9px] font-bold font-mono tracking-wider border transition-all active:scale-95 ${
-                scenario === sc.id
-                  ? 'bg-orange-700 text-black border-orange-500'
-                  : 'bg-transparent text-orange-900 border-orange-950'
-              }`}>
-              {sc.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Active Route */}
-      <AnimatePresence>
-        {navRoute && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="w-full mt-2 rounded-lg border px-3 py-2 flex items-center justify-between"
-            style={{ borderColor: 'rgba(34,197,94,0.4)', background: 'rgba(0,20,0,0.6)' }}>
-            <div>
-              <p className="text-[9px] text-green-700 tracking-widest font-mono">RUTA ACTIVA</p>
-              <p className="text-[11px] text-green-400 font-mono truncate max-w-[180px]">{navRoute.destination}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-orange-400 font-bold font-mono">{navRoute.durationMin} min</p>
-              <p className="text-[9px] text-gray-600 font-mono">{navRoute.distanceKm} km</p>
-            </div>
-            <button onClick={() => setNavRoute(null)} className="text-gray-700 ml-2 text-lg leading-none">✕</button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Now Playing */}
-      <AnimatePresence>
-        {nowPlaying && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="w-full mt-2 rounded-lg border px-3 py-2 flex items-center gap-3"
-            style={{ borderColor: 'rgba(34,197,94,0.3)', background: 'rgba(0,10,0,0.7)' }}>
-            <span className="text-green-500">{nowPlaying.playing ? '▶' : '⏸'}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-green-400 font-mono truncate">{nowPlaying.name}</p>
-              <p className="text-[9px] text-green-800 font-mono truncate">{nowPlaying.artist}</p>
-            </div>
-            <div className="flex gap-3 text-green-700">
-              <button onClick={() => handleSpotifyRef.current?.({ action: 'previous' })}>⏮</button>
-              <button onClick={() => handleSpotifyRef.current?.({ action: nowPlaying.playing ? 'pause' : 'resume' })}>
-                {nowPlaying.playing ? '⏸' : '▶'}
+      {/* TopBar */}
+      <div id="topbar">
+        <div id="clock">{clockTime}</div>
+        <div className="srow">
+          <div className="stat">
+            <span className={`dot ${obdStatus === 'connected' ? 'g' : 'r'}`} />
+            OBD
+          </div>
+          <div className="stat">
+            <span className={`dot ${speaking ? 'r' : listening ? 'a' : 'g'}`} />
+            KITT
+          </div>
+          <div className="obd-scenario">
+            {OBD_SCENARIOS.map(sc => (
+              <button key={sc.id} className={`obd-sc-btn${scenario === sc.id ? ' active' : ''}`} onClick={() => setScenario(sc.id)}>
+                {sc.label}
               </button>
-              <button onClick={() => handleSpotifyRef.current?.({ action: 'next' })}>⏭</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Conversation */}
-      <div className="w-full mt-3 rounded-xl border p-3 space-y-2 overflow-y-auto"
-        style={{ maxHeight: 120, borderColor: 'rgba(75,75,75,0.3)', background: 'linear-gradient(180deg,#050505 0%,#000 100%)' }}>
-        {messages.map((msg, i) => (
-          <div key={i} className={`text-[11px] leading-snug ${msg.role === 'kitt' ? 'text-orange-300' : 'text-gray-400 text-right'}`}>
-            {msg.role === 'kitt' && <span className="text-orange-600 font-bold mr-1">KITT›</span>}
-            {msg.text}
+            ))}
           </div>
-        ))}
-        {thinking && (
-          <div className="text-[11px] text-blue-500 font-mono">
-            KITT› <span className="animate-pulse">•••</span>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+        </div>
+        <div className="sysicons">
+          {/* OBD badge */}
+          {obdStatus === 'connected'
+            ? <span style={{ fontSize: 8, fontWeight: 700, color: '#ff2a17', border: '1px solid #7f1d1d', padding: '1px 4px', borderRadius: 3, letterSpacing: 1 }}>LIVE</span>
+            : <span style={{ fontSize: 8, color: '#333', border: '1px solid #222', padding: '1px 4px', borderRadius: 3, letterSpacing: 1 }}>SIM</span>
+          }
+          {/* Settings */}
+          <button onClick={() => setShowSettings(true)}
+            style={{ background: 'none', border: 'none', color: '#555', fontSize: 16, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>⚙</button>
+        </div>
       </div>
 
-      {/* Trivia Timer Bar */}
-      <AnimatePresence>
-        {triviaTimer !== null && (
-          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="w-full mt-2 rounded-lg border px-3 py-2"
-            style={{ borderColor: triviaTimer <= 5 ? 'rgba(239,68,68,0.6)' : 'rgba(234,179,8,0.5)', background: 'rgba(10,8,0,0.9)' }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] font-mono tracking-widest" style={{ color: triviaTimer <= 5 ? '#ef4444' : '#ca8a04' }}>TIEMPO RESTANTE</span>
-              <span className="text-xl font-bold font-mono" style={{ color: triviaTimer <= 5 ? '#f87171' : '#facc15' }}>{triviaTimer}s</span>
-            </div>
-            <div className="w-full rounded-full h-1.5" style={{ background: '#111' }}>
-              <motion.div className="h-1.5 rounded-full"
-                style={{ width: `${(triviaTimer / 15) * 100}%`, background: triviaTimer <= 5 ? '#ef4444' : '#eab308' }}
-                transition={{ duration: 0.85 }} />
-            </div>
-          </motion.div>
-        )}
-        {triviaMode && triviaTimer === null && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="w-full mt-2 text-center">
-            <span className="text-[9px] font-mono" style={{ color: '#92400e' }}>
-              TRIVIAL ACTIVO · {triviaScore.correct}/{triviaScore.total} correctas
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Body */}
+      <div id="body">
 
-      {/* Controls — Mic (interrupt) + Pause */}
-      <div className="w-full flex items-center justify-center pb-4 mt-3 gap-5">
-        {/* Mic button — always available, interrupts Kitt if speaking */}
-        <motion.button
-          onClick={() => {
-            if (elevenLabsAudioRef.current) { elevenLabsAudioRef.current.pause(); elevenLabsAudioRef.current = null; usingElevenLabsRef.current = false }
-            window.speechSynthesis?.cancel()
-            setSpeaking(false); speakingRef.current = false
-            if (!pausedRef.current) setTimeout(() => startListeningRef.current?.(), 120)
-          }}
-          whileTap={{ scale: 0.88 }}
-          className="flex flex-col items-center justify-center rounded-full select-none"
-          style={{
-            width: 64, height: 64,
-            background: listening
-              ? 'radial-gradient(circle,#1a1200 0%,#000 100%)'
-              : 'radial-gradient(circle,#0d0d0d 0%,#000 100%)',
-            border: `2px solid ${listening ? 'rgba(234,179,8,0.9)' : 'rgba(80,80,80,0.4)'}`,
-            boxShadow: listening ? '0 0 14px rgba(234,179,8,0.6)' : 'none',
-          }}>
-          <span className="text-lg leading-none" style={{ filter: listening ? 'none' : 'grayscale(1) opacity(0.4)' }}>🎙️</span>
-          <span className="text-[8px] font-bold tracking-wider mt-1 font-mono"
-            style={{ color: listening ? '#eab308' : '#444' }}>
-            {listening ? 'ESCUCHO' : 'HABLAR'}
-          </span>
-        </motion.button>
+        {/* Left Column */}
+        <div id="col-left">
 
-        {/* Pause / Resume */}
-        <motion.button onClick={togglePause} whileTap={{ scale: 0.91 }}
-          className="flex flex-col items-center justify-center rounded-full select-none"
-          style={{
-            width: 80, height: 80,
-            background: paused ? 'radial-gradient(circle,#1a1a1a 0%,#000 100%)' : 'radial-gradient(circle,#1c0a00 0%,#000 100%)',
-            border: `2px solid ${paused ? 'rgba(100,100,100,0.6)' : 'rgba(194,65,12,0.8)'}`,
-            boxShadow: paused ? '0 0 10px rgba(100,100,100,0.2)' : '0 0 20px rgba(255,80,0,0.4)',
-          }}>
-          <span className="text-2xl leading-none">{paused ? '▶' : '⏸'}</span>
-          <span className="text-[9px] font-bold tracking-[0.12em] mt-1 font-mono" style={{ color: paused ? '#666' : '#ea580c' }}>
-            {paused ? 'REANUDAR' : 'PAUSAR'}
-          </span>
-        </motion.button>
-      </div>
-      <p className="text-[9px] text-gray-700 font-mono tracking-wider text-center pb-4">CONVERSACIÓN CONTINUA · MANOS LIBRES</p>
+          {/* Speed panel */}
+          <div className="panel" id="vel-panel">
+            <div className="ptitle">VELOCIDAD</div>
+            <div className="vel-body">
+              <VelBarsPanel speed={obd.speed} />
+              <div className="vel-right">
+                <div className="vel-seg">
+                  <span className="ghost">888</span>
+                  <span className="real">{String(obd.speed).padStart(3,'0')}</span>
+                </div>
+                <div className="vel-unit">km/h</div>
+              </div>
+            </div>
+          </div>
+
+          {/* RPM arc */}
+          <div className="panel" id="rpm-panel">
+            <RpmArc rpm={obd.rpm} />
+          </div>
+
+          {/* Gauges 2x2 */}
+          <div className="panel" id="gauges-panel">
+            <div className="gauges-grid">
+              {/* Fuel */}
+              <div className="mini">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--green)" strokeWidth="1.5"><rect x="3" y="2" width="9" height="16" rx="1"/><path d="M12 6h3l2 2v6a1.5 1.5 0 01-3 0V9h-2"/><rect x="5" y="4" width="5" height="4" fill="var(--green)" stroke="none"/></svg>
+                <div className="mini-info">
+                  <div className="mt">COMBUSTIBLE</div>
+                  <div className={`mv ${obd.fuel < 15 ? 'r' : 'g'}`}>{Math.round(obd.fuel)}%</div>
+                  <SegBar frac={obd.fuel / 100} scheme="fuel" />
+                </div>
+              </div>
+              {/* Engine temp */}
+              <div className="mini">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--red)" strokeWidth="1.5"><path d="M8 3a2 2 0 014 0v8a3.5 3.5 0 11-4 0z"/><circle cx="10" cy="14" r="1.8" fill="var(--red)" stroke="none"/></svg>
+                <div className="mini-info">
+                  <div className="mt">TEMP MOTOR</div>
+                  <div className={`mv ${obd.temp > 100 ? 'r' : 'a'}`}>{Math.round(obd.temp)}°C</div>
+                  <SegBar frac={(obd.temp - 20) / 100} scheme="hot" />
+                </div>
+              </div>
+              {/* Range */}
+              <div className="mini">
+                <svg width="18" height="18" viewBox="0 0 22 20" fill="none" stroke="var(--amber)" strokeWidth="1.5"><path d="M3 10h16M3 10l4-4M3 10l4 4"/><circle cx="17" cy="10" r="3"/></svg>
+                <div className="mini-info">
+                  <div className="mt">AUTONOMIA</div>
+                  <div className={`mv ${fuelRange < 80 ? 'r' : 'a'}`}>{fuelRange}km</div>
+                  <SegBar frac={fuelRange / 600} scheme="fuel" />
+                </div>
+              </div>
+              {/* Battery */}
+              <div className="mini">
+                <svg width="18" height="18" viewBox="0 0 26 14" fill="none"><rect x=".5" y="1.5" width="22" height="11" rx="2" stroke="#60d0ff" strokeWidth="1.5"/><rect x="23" y="5" width="2.5" height="4" rx="1" fill="#60d0ff"/><rect x="2" y="3" width={Math.round((obd.battery / 15) * 16)} height="8" rx="1" fill="#60d0ff"/></svg>
+                <div className="mini-info">
+                  <div className="mt">BATERÍA</div>
+                  <div className={`mv c ${obd.battery < 12.1 ? 'r' : ''}`}>{obd.battery}V</div>
+                  <SegBar frac={(obd.battery - 11) / 4} scheme="cold" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>{/* /col-left */}
+
+        {/* Center Column */}
+        <div id="col-center">
+          <div className="panel" id="mod-panel">
+
+            {/* Active Route bar */}
+            {navRoute && (
+              <div className="nav-active-bar">
+                <div>
+                  <div style={{ fontSize: 8, color: '#16a34a', letterSpacing: 2, fontWeight: 700 }}>RUTA ACTIVA</div>
+                  <div style={{ fontSize: 10, color: '#4ade80', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{navRoute.destination}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: '#f97316', fontWeight: 700, fontSize: 14 }}>{navRoute.durationMin} min</div>
+                  <div style={{ fontSize: 9, color: '#555' }}>{navRoute.distanceKm} km</div>
+                </div>
+                <button onClick={() => setNavRoute(null)} style={{ background: 'none', border: 'none', color: '#444', fontSize: 18, cursor: 'pointer', marginLeft: 8, lineHeight: 1 }}>✕</button>
+              </div>
+            )}
+
+            {/* Now Playing bar */}
+            {nowPlaying && (
+              <div className="now-playing-bar">
+                <span style={{ color: '#4ade80' }}>{nowPlaying.playing ? '▶' : '⏸'}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: '#4ade80', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nowPlaying.name}</div>
+                  <div style={{ fontSize: 9, color: '#166534', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nowPlaying.artist}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, color: '#166534', fontSize: 14 }}>
+                  <button onClick={() => handleSpotifyRef.current?.({ action: 'previous' })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>⏮</button>
+                  <button onClick={() => handleSpotifyRef.current?.({ action: nowPlaying.playing ? 'pause' : 'resume' })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>{nowPlaying.playing ? '⏸' : '▶'}</button>
+                  <button onClick={() => handleSpotifyRef.current?.({ action: 'next' })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>⏭</button>
+                </div>
+              </div>
+            )}
+
+            {/* Trivia bar */}
+            {triviaTimer !== null && (
+              <div className="trivia-bar">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ fontSize: 9, color: triviaTimer <= 5 ? '#ef4444' : '#ca8a04', letterSpacing: 2 }}>TIEMPO</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: triviaTimer <= 5 ? '#f87171' : '#facc15' }}>{triviaTimer}s</span>
+                </div>
+                <div style={{ width: '100%', height: 3, background: '#111', borderRadius: 2 }}>
+                  <div style={{ width: `${(triviaTimer / 15) * 100}%`, height: '100%', background: triviaTimer <= 5 ? '#ef4444' : '#eab308', borderRadius: 2, transition: 'width 0.85s' }} />
+                </div>
+              </div>
+            )}
+
+            <div className="kr-title">KNIGHT RIDER</div>
+
+            <div className="modtop">
+              {/* Left pills */}
+              <div className="sidecol">
+                <button className="pill" onClick={() => handlePill('AIR')}>AIR</button>
+                <button className="pill" onClick={() => handlePill('OIL')}>OIL</button>
+                <button className="pill rp" onClick={() => handlePill('P1')}>{paused ? 'RUN' : 'PSE'}</button>
+                <button className="pill rp" onClick={() => handlePill('P2')}>CFG</button>
+              </div>
+
+              {/* Voice modulator center */}
+              <div className="modcenter">
+                <VoiceModulator speaking={speaking} thinking={thinking} onClick={handleVoiceTap} />
+                <div id="kittStatus">{kittStatusText}</div>
+                <div id="kittHint">{kittHintText}</div>
+              </div>
+
+              {/* Right pills */}
+              <div className="sidecol">
+                <button className="pill" onClick={() => handlePill('S1')}>HME</button>
+                <button className="pill" onClick={() => handlePill('S2')}>WRK</button>
+                <button className="pill rp" onClick={() => handlePill('P3')}>{obdStatus === 'connected' ? 'OBD✓' : 'OBD'}</button>
+                <button className="pill rp" onClick={() => handlePill('P4')}>EXP</button>
+              </div>
+            </div>
+
+            {/* Conversation log — last 4 messages */}
+            <div className="kitt-messages">
+              {messages.slice(-4).map((msg, i) => (
+                <div key={i} className={msg.role === 'kitt' ? 'kitt-msg-kitt' : 'kitt-msg-user'}>
+                  {msg.role === 'kitt' && <span className="kitt-msg-label">KITT›</span>}
+                  {msg.text}
+                </div>
+              ))}
+              {thinking && <div className="kitt-msg-kitt"><span className="kitt-msg-label">KITT›</span><span>•••</span></div>}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Mode buttons */}
+            <div className="modes-row">
+              <div className={`mode${activeMode === 'normal' ? ' active' : ''}`} onClick={() => setActiveMode('normal')}>NORMAL CRUISE</div>
+              <div className={`mode${activeMode === 'auto' ? ' active' : ''}`} onClick={() => setActiveMode('auto')}>AUTO CRUISE</div>
+              <div className={`mode${activeMode === 'pursuit' ? ' active' : ''}`} onClick={() => setActiveMode('pursuit')}>PURSUIT</div>
+            </div>
+
+          </div>
+        </div>{/* /col-center */}
+
+      </div>{/* /body */}
+
     </div>
   )
 }
