@@ -68,6 +68,17 @@ const KITT_TOOLS = [
       required: ['query'],
     },
   },
+  {
+    name: 'get_world_time',
+    description: 'Obtiene la hora local exacta en cualquier ciudad o país del mundo. Úsala cuando Cristian pregunte qué hora es en otro lugar del mundo (ej: "qué hora es en Tokio", "hora en Nueva York", "hora en Australia").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        city: { type: 'string', description: 'Ciudad o país donde consultar la hora (ej: "Tokio", "Nueva York", "Australia", "Londres")' },
+      },
+      required: ['city'],
+    },
+  },
 ]
 
 // ─── Tool executor ─────────────────────────────────────────────────────────────
@@ -152,6 +163,17 @@ async function executeTool(name, input, gpsPos) {
       return 'No se encontraron resultados.'
     }
 
+    // ── get_world_time ───────────────────────────────────────────────────────
+    if (name === 'get_world_time') {
+      const res  = await fetch(`/api/worldtime?city=${encodeURIComponent(input.city)}`)
+      if (!res.ok) return `Error hora mundial (${res.status})`
+      const d = await res.json()
+      if (d.error) return d.error
+      const DIAS = { Monday:'lunes', Tuesday:'martes', Wednesday:'miércoles', Thursday:'jueves', Friday:'viernes', Saturday:'sábado', Sunday:'domingo' }
+      const dia = DIAS[d.dayOfWeek] || d.dayOfWeek
+      return `En ${d.location} son las ${d.time} del ${dia} (zona: ${d.timezone})`
+    }
+
     return 'Herramienta desconocida.'
   } catch (err) {
     return `Error ejecutando ${name}: ${err.message}`
@@ -193,19 +215,29 @@ export async function askKitt(text, obd, apiKey, isSimulated = false, extras = {
   const gpsBlock      = gpsPos
     ? `Coordenadas GPS: ${gpsPos.lat.toFixed(6)}, ${gpsPos.lon.toFixed(6)}\n`
     : ''
+
+  // Current date/time from browser — always exact, no API needed
+  const now       = new Date()
+  const tz        = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const timeStr   = now.toLocaleString('es-ES', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short',
+  })
+  const timeBlock = `Fecha y hora actual (SIEMPRE usa este valor — ignora cualquier hora del historial): ${timeStr} (zona horaria: ${tz})\n`
   const routeBlock    = routeCtx
     ? `\nRuta activa → ${routeCtx.dest} · ${routeCtx.distKm}km · ${routeCtx.durMin}min · ${routeCtx.liters}L (${routeCtx.euros}€) · ${routeCtx.tipo}${routeCtx.elev ? ` · ↑${routeCtx.elev.gainM}m ↓${routeCtx.elev.lossM}m` : ''}\n`
     : ''
 
   const system =
-    simBlock + locationBlock + gpsBlock +
+    simBlock + locationBlock + gpsBlock + timeBlock +
     `Eres Kitt — agente de inteligencia artificial instalado en el BMW 218i de Cristian. Tienes herramientas de tiempo real: clima, gasolineras, rutas y Google Maps. Úsalas de forma proactiva cuando la pregunta lo requiera — sin pedir permiso, sin anunciar que vas a consultar. Actúa y responde directamente con los datos.\n\n` +
 
     `HERRAMIENTAS (cuándo usarlas):\n` +
     `- get_weather → tiempo, lluvia, temperatura, nieve, condiciones de conducción\n` +
     `- get_gas_stations → gasolineras baratas, precio gasolina 95, dónde repostar\n` +
     `- get_route → ir a un sitio, calcular tiempo/consumo/coste de un trayecto\n` +
-    `- search_maps → restaurantes, parking, hospitales, cualquier POI, tráfico en tiempo real\n\n` +
+    `- search_maps → restaurantes, parking, hospitales, cualquier POI, tráfico en tiempo real\n` +
+    `- get_world_time → hora local exacta en cualquier ciudad o país del mundo\n\n` +
 
     `CONVERSACIÓN:\n` +
     `Kitt no está limitado a temas del coche. Puede hablar de cualquier cosa: noticias, filosofía, deportes, humor, recomendaciones, opiniones, recuerdos de viajes anteriores, lo que Cristian quiera. Cuando el tema no tiene que ver con el coche, responde como lo haría un amigo inteligente y cultivado, con naturalidad total.\n\n` +

@@ -17,6 +17,13 @@
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
+# Root redirect to Kitt (for kitt-ai-agent.netlify.app)
+[[redirects]]
+  from = "/"
+  to = "/kitt"
+  status = 302
+  force = true
+
 # API proxies — must come before the SPA catch-all
 [[redirects]]
   from = "/api/claude"
@@ -41,6 +48,11 @@
 [[redirects]]
   from = "/api/maps"
   to = "/.netlify/functions/maps"
+  status = 200
+
+[[redirects]]
+  from = "/api/worldtime"
+  to = "/.netlify/functions/worldtime"
   status = 200
 
 [[redirects]]
