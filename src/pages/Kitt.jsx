@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import '../kitt-dashboard.css'
 import { geocodeAddress, getRoutes, getMapsUrls, extractDestination, estimateRouteFuel, getElevationGain, formatDuration, getDrivingTips, extractRouteChoice } from '../lib/navigation'
 import {
   buildSpotifyAuthUrl, exchangePkceCode, searchTrack, searchArtistTopTrack,
@@ -788,6 +789,173 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
       </div>
     </motion.div>
   )
+}
+
+// ─── VelBarsPanel ─────────────────────────────────────────────────────────────
+function VelBarsPanel({ speed }) {
+  const containerRef = useRef(null)
+  const colsRef = useRef([])
+  const VB_COLS = 4, VB_ROWS = 14
+
+  useEffect(() => {
+    const c = containerRef.current
+    if (!c) return
+    c.innerHTML = ''
+    colsRef.current = []
+    for (let col = 0; col < VB_COLS; col++) {
+      const colEl = document.createElement('div')
+      colEl.className = 'vbc'
+      const segs = []
+      for (let row = 0; row < VB_ROWS; row++) {
+        const seg = document.createElement('div')
+        seg.className = 'b'
+        colEl.appendChild(seg)
+        segs.push(seg)
+      }
+      c.appendChild(colEl)
+      colsRef.current.push(segs)
+    }
+  }, [])
+
+  useEffect(() => {
+    const cols = colsRef.current
+    if (!cols.length) return
+    const frac = Math.min(1, speed / 260)
+    const on = Math.round(frac * VB_ROWS)
+    cols.forEach(segs => {
+      segs.forEach((seg, i) => {
+        const t = i / VB_ROWS
+        if (i < on) {
+          if (t < 0.65)      { seg.style.background = '#3dff66'; seg.style.boxShadow = '0 0 4px #3dff66' }
+          else if (t < 0.85) { seg.style.background = '#ffb000'; seg.style.boxShadow = '0 0 4px #ffb000' }
+          else               { seg.style.background = '#ff2a17'; seg.style.boxShadow = '0 0 4px #ff2a17' }
+        } else {
+          seg.style.background = '#091409'
+          seg.style.boxShadow = 'none'
+        }
+      })
+    })
+  }, [speed])
+
+  return <div ref={containerRef} id="velBars" />
+}
+
+// ─── RpmArc ───────────────────────────────────────────────────────────────────
+function RpmArc({ rpm }) {
+  const RL = 48
+  const P0 = [6, 105], P1 = [190, 5], P2 = [374, 60]
+  const bez = t => [
+    (1-t)*(1-t)*P0[0] + 2*(1-t)*t*P1[0] + t*t*P2[0],
+    (1-t)*(1-t)*P0[1] + 2*(1-t)*t*P1[1] + t*t*P2[1],
+  ]
+  const frac = Math.min(1, rpm / 8200)
+  const on = Math.round(frac * RL)
+  const dots = Array.from({ length: RL }, (_, i) => {
+    const [cx, cy] = bez(i / (RL - 1))
+    const tf = i / RL
+    let fill = '#0d1a0d', filter = undefined
+    if (i < on) {
+      if (tf < 0.55)      { fill = '#3dff66'; filter = 'url(#gg)' }
+      else if (tf < 0.78) { fill = '#ffb000'; filter = 'url(#ag)' }
+      else                { fill = '#ff2a17'; filter = 'url(#rg)' }
+    }
+    return { cx, cy, fill, filter }
+  })
+  const labels = [['0',.0],['2k',.22],['4k',.5],['6k',.72],['8k',1]]
+  return (
+    <svg id="rpmArc" viewBox="0 0 380 115" preserveAspectRatio="none">
+      <defs>
+        <filter id="rg"><feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#ff2a17" floodOpacity="0.8"/></filter>
+        <filter id="ag"><feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#ffb000" floodOpacity="0.8"/></filter>
+        <filter id="gg"><feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#3dff66" floodOpacity="0.8"/></filter>
+      </defs>
+      {labels.map(([lbl, t]) => {
+        const [x, y] = bez(t)
+        return <text key={lbl} x={x} y={Math.max(12, y-8)} textAnchor="middle" fontSize="8" fill="#3a3a3a" fontFamily="Eurostile,sans-serif">{lbl}</text>
+      })}
+      {dots.map((d, i) => <circle key={i} cx={d.cx} cy={d.cy} r="5" fill={d.fill} filter={d.filter} />)}
+      <rect x="215" y="68" width="100" height="44" fill="#080808" stroke="#222" strokeWidth="1" rx="3"/>
+      <text x="265" y="107" textAnchor="middle" fontSize="38" fill="#ff2a17" fontFamily="DSEG7,monospace" filter="url(#rg)">{String(Math.round(rpm)).padStart(3,'0')}</text>
+      <rect x="320" y="98" width="42" height="16" fill="#aa0000" rx="2"/>
+      <text x="341" y="110" textAnchor="middle" fontSize="10" fill="#fff" fontFamily="Eurostile,sans-serif" fontWeight="700">RPM</text>
+    </svg>
+  )
+}
+
+// ─── SegBar ───────────────────────────────────────────────────────────────────
+function SegBar({ frac, scheme }) {
+  const SEG_N = 10
+  const on = Math.round(Math.min(1, frac) * SEG_N)
+  return (
+    <div className="mbar">
+      {Array.from({ length: SEG_N }, (_, i) => {
+        const t = i / SEG_N
+        let c = '#141414', shadow = 'none'
+        if (i < on) {
+          if (scheme === 'fuel' || scheme === 'range') c = t < 0.3 ? '#ff2a17' : t < 0.6 ? '#ffb000' : '#3dff66'
+          else if (scheme === 'hot') c = t < 0.5 ? '#3dff66' : t < 0.75 ? '#ffb000' : '#ff2a17'
+          else c = '#60d0ff'
+          shadow = `0 0 4px ${c}`
+        }
+        return <div key={i} className="ms" style={{ background: c, boxShadow: shadow }} />
+      })}
+    </div>
+  )
+}
+
+// ─── VoiceModulator ───────────────────────────────────────────────────────────
+function VoiceModulator({ speaking, thinking, onClick }) {
+  const containerRef = useRef(null)
+  const stateRef = useRef({ speaking, thinking })
+  useEffect(() => { stateRef.current = { speaking, thinking } }, [speaking, thinking])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const VC = 3, VS = 20, VCEN = (VS - 1) / 2
+    const VW = [0.55, 1.0, 0.55]
+    const cols = []
+    for (let c = 0; c < VC; c++) {
+      const col = document.createElement('div')
+      col.className = 'vcol'
+      const segs = []
+      for (let s = 0; s < VS; s++) {
+        const seg = document.createElement('div')
+        seg.className = 'vseg'
+        col.appendChild(seg)
+        segs.push(seg)
+      }
+      container.appendChild(col)
+      cols.push(segs)
+    }
+    let vt = 0, frameId
+    const animate = () => {
+      vt += 0.05
+      const { speaking, thinking } = stateRef.current
+      const osc = (Math.sin(vt * 2.4) + 1) / 2
+      const reach = speaking ? (0.85 + 0.15 * osc) : thinking ? (0.4 + 0.1 * osc) : (0.15 + 0.08 * osc)
+      cols.forEach((segs, c) => {
+        const ext = Math.min(1, reach * VW[c] + (speaking ? Math.random() * 0.09 : Math.random() * 0.03))
+        const lh = Math.round(ext * VCEN)
+        segs.forEach((seg, i) => {
+          const d = Math.abs(i - VCEN)
+          if (d <= lh) {
+            const e = lh > 0 ? 1 - (d / (lh + 0.6)) * 0.3 : 1
+            seg.style.background = `rgba(255,38,20,${(0.5 + e * 0.5).toFixed(2)})`
+            seg.style.boxShadow = `0 0 ${(3 + e * 8).toFixed(1)}px rgba(255,40,22,${e.toFixed(2)})`
+          } else {
+            seg.style.background = '#1e0603'
+            seg.style.boxShadow = 'none'
+          }
+        })
+      })
+      frameId = requestAnimationFrame(animate)
+    }
+    animate()
+    return () => { cancelAnimationFrame(frameId); container.innerHTML = '' }
+  }, []) // eslint-disable-line
+
+  return <div ref={containerRef} id="voicebars" onClick={onClick} />
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
