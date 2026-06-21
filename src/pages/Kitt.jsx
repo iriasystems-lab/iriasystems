@@ -22,8 +22,8 @@ async function elevenLabsSpeak(text, apiKey, voiceId, onStart, onEnd, onError, o
       headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
       body: JSON.stringify({
         text,
-        model_id: 'eleven_turbo_v2_5',
-        voice_settings: { stability: 0.82, similarity_boost: 0.78, style: 0.0, use_speaker_boost: true },
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.45, similarity_boost: 0.88, style: 0.22, use_speaker_boost: true },
       }),
     })
     if (!res.ok) throw new Error(`ElevenLabs ${res.status}`)
