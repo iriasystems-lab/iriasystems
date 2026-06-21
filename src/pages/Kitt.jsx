@@ -225,14 +225,14 @@ function buildGreeting() {
     : 'Buenas noches'
 
   const variants = [
-    `${saludo}, Cristian. Sistemas en línea. Cuéntame a dónde vamos y te asisto en todo el trayecto.`,
-    `${saludo}, Cristian. Kitt conectado y operativo. Di el destino y me encargo del resto.`,
-    `${saludo}, Cristian. Todos los sistemas activos. ¿A dónde nos lleva hoy la ruta?`,
-    `${saludo}. Cristian, estoy aquí. Dime a dónde vamos y viajamos juntos.`,
-    `${saludo}, Cristian. En línea y listo para acompañarte. El camino es tuyo — yo vigilo que llegues bien.`,
-    `${saludo}, Cristian. Conectado y a tu disposición. ¿Qué ruta tienes en mente?`,
-    `${saludo}. De vuelta al volante, Cristian. Cuéntame el plan y empezamos.`,
-    `${saludo}, Cristian. Kitt activo. El motor, la ruta, el tiempo... todo bajo control. ¿Empezamos?`,
+    `${saludo}, Cristian. Soy la voz del microprocesador de Industrias 2000. Todos los sistemas están operativos y a tu disposición.`,
+    `${saludo}, Cristian. Me alegra volver a comunicarme contigo. Motor, ruta y sistemas en perfectas condiciones. ¿A dónde nos dirigimos?`,
+    `${saludo}, Cristian. Kitt en línea. Si me permites la sugerencia, cuéntame el destino y me encargo de que llegues en las mejores condiciones.`,
+    `${saludo}, Cristian. De vuelta al volante, como es debido. Los sistemas están listos. ¿Qué ruta tienes en mente?`,
+    `${saludo}, Cristian. Un hombre puede marcar la diferencia, y yo estaré aquí para que lo consigas. ¿A dónde vamos?`,
+    `${saludo}, Cristian. Kitt conectado y operativo. Dime el plan y lo ejecutamos juntos con la mayor eficiencia posible.`,
+    `${saludo}. Me complace informarte de que todos los sistemas funcionan con normalidad, Cristian. ¿En qué puedo asistirte?`,
+    `${saludo}, Cristian. Permíteme señalar que el motor está en temperatura óptima y el combustible es suficiente para cualquier trayecto razonable. ¿Adónde vamos?`,
   ]
 
   return variants[Math.floor(Math.random() * variants.length)]
@@ -258,55 +258,55 @@ function getKittResponse(input, obd, isSimulated) {
   }
 
   if (/^(hola|buenas|buenos|ey|oye|hey|que hay|hola kitt)/.test(q))
-    return `Hola, Cristian. Kitt activo. ¿Qué necesitas?`
+    return `Me alegra volver a comunicarme contigo, Cristian. Kitt a tu disposición. ¿En qué puedo asistirte?`
 
   if (/como estas|como va todo|todo bien|que tal|sistemas|operativo/.test(q))
-    return `Todo correcto. Motor a ${temp} grados, combustible ${fuel}%, batería ${bat} voltios${sim}.`
+    return `Me complace informarte de que todo está en orden. Motor a ${temp} grados, combustible al ${fuel}%, batería a ${bat} voltios${sim}. Perfectamente.`
 
   if (/velocidad|a cuanto|cuanto vamos|cuanto voy|cuantos km/.test(q)) {
-    if (isSimulated) return speed < 3 ? 'Estás parado. Sin OBD no tengo la velocidad real.' : `Según GPS vas a unos ${speed} km/h. Conecta el OBD para datos precisos.`
-    return speed < 3 ? 'Estás parado, motor al ralentí.' : `Circulando a ${speed} km/h, marcha ${gear}.${speed > 120 ? ' Atención: velocidad elevada.' : ''}`
+    if (isSimulated) return speed < 3 ? 'Permíteme señalar que estás detenido. Sin el adaptador OBD no dispongo de la velocidad real del vehículo.' : `Según los datos de posición, circulamos a aproximadamente ${speed} km/h. Si gustas conectar el OBD obtendrías datos más precisos.`
+    return speed < 3 ? 'El vehículo está detenido, motor al ralentí.' : `Circulamos a ${speed} km/h en marcha ${gear}.${speed > 120 ? ' Si me permites la sugerencia, la velocidad actual está por encima de lo recomendable.' : ''}`
   }
 
   if (/rpm|revoluciones/.test(q))
-    return `Motor a ${rpm} RPM${sim}. ${rpm > 4000 ? 'Régimen alto, sube marcha.' : rpm < 500 && speed < 2 ? 'Motor apagado.' : 'Régimen correcto.'}`
+    return `El motor trabaja a ${rpm} revoluciones por minuto${sim}. ${rpm > 4000 ? 'Permíteme sugerirte que subas de marcha.' : rpm < 500 && speed < 2 ? 'El motor está apagado.' : 'Régimen correcto.'}`
 
   if (/combustible|gasolina|deposito|autonomia|cuanto queda|litros/.test(q)) {
     const litros = calcLitrosRestantes(fuel)
     const km = calcRange(fuel)
-    if (fuel < 15) return `Combustible bajo: ${litros} litros, unos ${km} km. Recomiendo repostar.`
-    return `Tienes ${litros} litros, autonomía estimada ${km} km.`
+    if (fuel < 15) return `Debo advertirte que el combustible está bajo: ${litros} litros disponibles, autonomía estimada de ${km} kilómetros. Si me permites la sugerencia, convendría repostar en breve.`
+    return `Dispones de ${litros} litros. La autonomía estimada es de ${km} kilómetros. Perfectamente.`
   }
 
   if (/temperatura|calor del motor|motor frio|motor caliente|sobrecalent/.test(q))
-    return `Motor a ${temp} grados${sim}. ${temp > 105 ? 'Temperatura elevada, reduce carga.' : temp < 88 ? 'Motor calentando.' : 'Temperatura correcta.'}`
+    return `El motor se encuentra a ${temp} grados${sim}. ${temp > 105 ? 'Debo advertirte que la temperatura es elevada. Convendría reducir la carga.' : temp < 88 ? 'El motor está terminando de alcanzar su temperatura de trabajo.' : 'Temperatura en rango óptimo. Todo correcto.'}`
 
   if (/bateria|voltaje|alternador/.test(q))
-    return `Batería a ${bat}V${sim}. ${bat < 12.4 && speed < 3 ? 'Voltaje bajo en reposo.' : 'Sistema eléctrico correcto.'}`
+    return `La batería marca ${bat} voltios${sim}. ${bat < 12.4 && speed < 3 ? 'Permíteme señalar que el voltaje es algo bajo en reposo.' : 'El sistema eléctrico funciona con normalidad.'}`
 
   if (/marcha|cambio/.test(q))
-    return `Marcha ${gear}, ${speed} km/h, ${rpm} RPM${sim}.`
+    return `Circulamos en marcha ${gear}, a ${speed} km/h y ${rpm} revoluciones por minuto${sim}.`
 
   if (/consumo|ahorrar|eficiencia/.test(q))
-    return speed > 120 ? 'Baja a 110 km/h para ahorrar combustible.' : rpm > 3000 ? 'Sube marcha para reducir RPM y consumo.' : 'Conducción eficiente.'
+    return speed > 120 ? 'Si me permites la sugerencia, reducir a 110 km/h mejoraría notablemente el consumo.' : rpm > 3000 ? 'Subir de marcha reduciría las revoluciones y el consumo. Una pequeña mejora que suma.' : 'La conducción es eficiente. Nada que objetar.'
 
   if (/averia|fallo|error|diagnostico|testigo|check engine|dtc/.test(q))
-    return `Diagnóstico: ${obd.dtc?.length ? `${obd.dtc.length} código(s) activos. Dime el código y te explico.` : 'Sin códigos de avería detectados.'}`
+    return `${obd.dtc?.length ? `Debo informarte de que hay ${obd.dtc.length} código${obd.dtc.length > 1 ? 's' : ''} de avería activo${obd.dtc.length > 1 ? 's' : ''}. Dime el código y te explico qué significa.` : 'No he detectado ningún código de avería. Los sistemas están en orden.'}`
 
   if (/gasolinera|repostar|gasolina barata/.test(q))
-    return `Di "busca gasolinera barata" y te encuentro las más baratas cerca.`
+    return `Di "busca gasolinera barata" y localizaré las estaciones de servicio más económicas en tu entorno.`
 
   if (/donde estamos|ubicacion|donde estoy|mapa|gps/.test(q))
-    return `Para navegar di "llévame a" seguido del destino.`
+    return `Para iniciar la navegación, di "llévame a" seguido del destino que desees.`
 
   if (/musica|cancion|spotify|reproduce/.test(q))
-    return `Di "pon música de" con el artista, o "siguiente", "pausa", "sube el volumen".`
+    return `Para la música di "pon música de" con el nombre del artista. También puedo gestionar "siguiente canción", "pausa" o "sube el volumen".`
 
   if (/tiempo|lluvia|sol|clima/.test(q))
-    return `Di "qué tiempo hace" para el tiempo por GPS, o "tiempo en" seguido de la ciudad.`
+    return `Di "qué tiempo hace" y consulto las condiciones meteorológicas por tu posición GPS. O "tiempo en" seguido de la ciudad si prefieres otro lugar.`
 
   if (/gracias|perfecto|genial|bien hecho/.test(q))
-    return `A tu servicio, Cristian.`
+    return `Es un placer, Cristian. Para eso estoy.`
 
   if (/quien eres|que eres|presentate/.test(q))
     return `Soy Kitt, agente de inteligencia artificial integrado en tu vehículo. Monitorizo el motor, la ruta y te asisto con voz. ¿Qué necesitas?`
@@ -954,7 +954,7 @@ export default function Kitt() {
 
   // Preload ambient scanner loop
   useEffect(() => {
-    fetch('/scanner-kitt.mp4')
+    fetch('/scanner-kitt.mp3')
       .then(r => r.ok ? r.arrayBuffer() : null)
       .then(buf => { if (buf) scannerBufRef.current = buf })
       .catch(() => {})
