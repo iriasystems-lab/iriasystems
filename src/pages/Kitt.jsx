@@ -62,12 +62,14 @@ const SPOTIFY_CLIENT_ID = 'f933e05e45a540fead4d07bf3310d796'
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    // Always force hardcoded ElevenLabs credentials — never let stale localStorage override
     s.voiceId   = KITT_VOICE_ID
     s.apiKey    = ELEVENLABS_KEY
-    if (!s.spotifyId) s.spotifyId = SPOTIFY_CLIENT_ID
+    if (!s.spotifyId)           s.spotifyId        = SPOTIFY_CLIENT_ID
+    if (!s.userName)            s.userName         = 'Cristian'
+    if (s.speedAlertKmh === undefined) s.speedAlertKmh = 130
+    if (s.silentMode === undefined)    s.silentMode    = false
     return s
-  } catch { return { voiceId: KITT_VOICE_ID, apiKey: ELEVENLABS_KEY, spotifyId: SPOTIFY_CLIENT_ID } }
+  } catch { return { voiceId: KITT_VOICE_ID, apiKey: ELEVENLABS_KEY, spotifyId: SPOTIFY_CLIENT_ID, userName: 'Cristian', speedAlertKmh: 130, silentMode: false } }
 }
 function saveSettings(s) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch {}
@@ -75,6 +77,11 @@ function saveSettings(s) {
 function getSpotifyToken() {
   try { return localStorage.getItem('kitt_sp_token') || null } catch { return null }
 }
+
+// ─── First-run onboarding ─────────────────────────────────────────────────────
+const SETUP_KEY = 'kitt_agent_setup'
+const isFirstRun = () => { try { return !localStorage.getItem(SETUP_KEY) } catch { return false } }
+const markSetupDone = () => { try { localStorage.setItem(SETUP_KEY, '1') } catch {} }
 
 // ─── OBD Scenarios ────────────────────────────────────────────────────────────
 const OBD_SCENARIOS = [
@@ -119,6 +126,129 @@ function useOBDData(scenarioId) {
     return () => clearInterval(id)
   }, [scenarioId]) // eslint-disable-line
   return obd
+}
+
+// ─── TypewriterText ───────────────────────────────────────────────────────────
+function TypewriterText({ text, speed = 22, onDone }) {
+  const [displayed, setDisplayed] = useState('')
+  useEffect(() => {
+    setDisplayed('')
+    let i = 0
+    const id = setInterval(() => {
+      i++
+      setDisplayed(text.slice(0, i))
+      if (i >= text.length) { clearInterval(id); onDone?.() }
+    }, speed)
+    return () => clearInterval(id)
+  }, [text]) // eslint-disable-line
+  return (
+    <span style={{ whiteSpace: 'pre-line' }}>
+      {displayed}
+      <span style={{ opacity: displayed.length < text.length ? 1 : 0, animation: 'blink 1s step-end infinite' }}>█</span>
+    </span>
+  )
+}
+
+// ─── Onboarding Screen ────────────────────────────────────────────────────────
+const INTRO_TEXT = `ENLACE CON K.I.T.T. ESTABLECIDO.\n\nSoy la voz del microprocesador de Industrias 2000.\n\nHas sido seleccionado para el programa. A partir de este momento no conduces solo: soy tu copiloto, tu sistema de navegación y tu inteligencia de misión.\n\nAntes de iniciar la primera patrulla, necesito identificarte.`
+
+function OnboardingScreen({ onComplete }) {
+  const [phase, setPhase]         = useState(0)
+  const [introDone, setIntroDone] = useState(false)
+  const [userName, setUserName]   = useState('')
+  const [claudeKey, setClaudeKey] = useState(loadSettings().claudeKey || '')
+  const [claudeTest, setClaudeTest] = useState('idle')
+
+  const handleFinish = () => {
+    if (!userName.trim()) return
+    saveSettings({ ...loadSettings(), userName: userName.trim(), claudeKey: claudeKey.trim() })
+    markSetupDone()
+    onComplete(userName.trim())
+  }
+
+  const baseStyle = { position: 'fixed', inset: 0, zIndex: 500, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px', fontFamily: "'Eurostile',monospace" }
+  const titleStyle = { fontSize: 10, letterSpacing: '0.4em', color: '#f97316', marginBottom: 36, textAlign: 'center', textShadow: '0 0 16px rgba(255,120,0,0.7)' }
+  const textStyle  = { fontSize: 12, lineHeight: 1.9, color: '#c2410c', maxWidth: 520, textAlign: 'center', marginBottom: 40 }
+  const labelStyle = { display: 'block', fontSize: 9, letterSpacing: '0.3em', color: '#b45309', marginBottom: 6 }
+  const inputStyle = { width: '100%', background: '#080808', border: '1px solid #7c2d12', borderRadius: 6, padding: '12px 14px', color: '#fed7aa', fontSize: 13, fontFamily: 'monospace', outline: 'none', marginBottom: 4, boxSizing: 'border-box' }
+  const hintStyle  = { fontSize: 9, color: '#78350f', marginBottom: 20 }
+  const btnStyle   = { fontFamily: "'Eurostile',monospace", fontWeight: 700, letterSpacing: '0.2em', fontSize: 13, color: '#f97316', border: '1px solid #9a3412', padding: '14px 44px', borderRadius: 8, background: 'transparent', cursor: 'pointer', boxShadow: '0 0 20px rgba(255,80,0,0.25)', marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }
+
+  return (
+    <div style={baseStyle}>
+      {/* Scanlines */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.13) 3px,transparent 4px)', zIndex: 1 }} />
+      {/* Red scanner glow */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,#ff2600,transparent)', opacity: 0.6, zIndex: 1, animation: 'scanLine 3s ease-in-out infinite' }} />
+
+      <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 540 }}>
+        {phase === 0 && (
+          <>
+            <p style={titleStyle}>K · I · T · T — PROTOCOLO DE ACTIVACIÓN</p>
+            <p style={textStyle}>
+              <TypewriterText text={INTRO_TEXT} speed={22} onDone={() => setIntroDone(true)} />
+            </p>
+            {introDone && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                style={btnStyle}
+                onClick={() => setPhase(1)}>
+                IDENTIFICARME
+              </motion.button>
+            )}
+          </>
+        )}
+
+        {phase === 1 && (
+          <>
+            <p style={titleStyle}>CALIBRACIÓN DE IDENTIDAD — AGENTE</p>
+            <div style={{ width: '100%' }}>
+              <label style={labelStyle}>NOMBRE DEL AGENTE *</label>
+              <input
+                style={inputStyle}
+                placeholder="Tu nombre"
+                value={userName}
+                onChange={e => setUserName(e.target.value)}
+                autoFocus
+                onKeyDown={e => e.key === 'Enter' && handleFinish()}
+              />
+              <p style={hintStyle}>Kitt se dirigirá a ti siempre por este nombre.</p>
+
+              <label style={labelStyle}>CLAVE ANTHROPIC — INTELIGENCIA CLAUDE (opcional)</label>
+              <input
+                style={inputStyle}
+                type="password"
+                placeholder="sk-ant-api03-..."
+                value={claudeKey}
+                onChange={e => { setClaudeKey(e.target.value); setClaudeTest('idle') }}
+              />
+              <p style={hintStyle}>Sin clave, Kitt funciona con respuestas por palabras clave. Puedes añadirla después en Ajustes.</p>
+
+              {claudeKey.trim().length > 10 && (
+                <button
+                  onClick={() => { setClaudeTest('testing'); testClaude(claudeKey.trim(), setClaudeTest) }}
+                  disabled={claudeTest === 'testing'}
+                  style={{ ...btnStyle, fontSize: 10, padding: '8px 24px', marginBottom: 8,
+                    color: claudeTest === 'ok' ? '#4ade80' : claudeTest === 'invalid' ? '#f87171' : '#60a5fa',
+                    borderColor: claudeTest === 'ok' ? '#166534' : claudeTest === 'invalid' ? '#7f1d1d' : '#1e3a5f' }}>
+                  {claudeTest === 'testing' ? 'VERIFICANDO...' : claudeTest === 'ok' ? '✓ CLAUDE CONECTADO' : claudeTest === 'invalid' ? '✕ CLAVE INVÁLIDA' : '▶ VERIFICAR CLAVE'}
+                </button>
+              )}
+            </div>
+            <button
+              style={{ ...btnStyle, opacity: userName.trim() ? 1 : 0.35, cursor: userName.trim() ? 'pointer' : 'default' }}
+              onClick={handleFinish}
+              disabled={!userName.trim()}>
+              SINCRONIZAR SISTEMAS
+            </button>
+            <p style={{ ...hintStyle, textAlign: 'center', marginTop: 16 }}>* Campo obligatorio</p>
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── Boot Screen ──────────────────────────────────────────────────────────────
@@ -217,6 +347,7 @@ function calcLitrosFaltantes(fuelPct) {
 }
 
 function buildGreeting() {
+  const { userName = 'Cristian' } = loadSettings()
   const hour = parseInt(
     new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: 'numeric', hour12: false }).format(new Date()),
     10
@@ -226,14 +357,14 @@ function buildGreeting() {
     : 'Buenas noches'
 
   const variants = [
-    `${saludo}, Cristian. Soy la voz del microprocesador de Industrias 2000. Todos los sistemas están operativos y a tu disposición.`,
-    `${saludo}, Cristian. Me alegra volver a comunicarme contigo. Motor, ruta y sistemas en perfectas condiciones. ¿A dónde nos dirigimos?`,
-    `${saludo}, Cristian. Kitt en línea. Si me permites la sugerencia, cuéntame el destino y me encargo de que llegues en las mejores condiciones.`,
-    `${saludo}, Cristian. De vuelta al volante, como es debido. Los sistemas están listos. ¿Qué ruta tienes en mente?`,
-    `${saludo}, Cristian. Un hombre puede marcar la diferencia, y yo estaré aquí para que lo consigas. ¿A dónde vamos?`,
-    `${saludo}, Cristian. Kitt conectado y operativo. Dime el plan y lo ejecutamos juntos con la mayor eficiencia posible.`,
-    `${saludo}. Me complace informarte de que todos los sistemas funcionan con normalidad, Cristian. ¿En qué puedo asistirte?`,
-    `${saludo}, Cristian. Permíteme señalar que el motor está en temperatura óptima y el combustible es suficiente para cualquier trayecto razonable. ¿Adónde vamos?`,
+    `${saludo}, ${userName}. Soy la voz del microprocesador de Industrias 2000. Todos los sistemas están operativos y a tu disposición.`,
+    `${saludo}, ${userName}. Me alegra volver a comunicarme contigo. Motor, ruta y sistemas en perfectas condiciones. ¿A dónde nos dirigimos?`,
+    `${saludo}, ${userName}. Kitt en línea. Si me permites la sugerencia, cuéntame el destino y me encargo de que llegues en las mejores condiciones.`,
+    `${saludo}, ${userName}. De vuelta al volante, como es debido. Los sistemas están listos. ¿Qué ruta tienes en mente?`,
+    `${saludo}, ${userName}. Un hombre puede marcar la diferencia, y yo estaré aquí para que lo consigas. ¿A dónde vamos?`,
+    `${saludo}, ${userName}. Kitt conectado y operativo. Dime el plan y lo ejecutamos juntos con la mayor eficiencia posible.`,
+    `${saludo}. Me complace informarte de que todos los sistemas funcionan con normalidad, ${userName}. ¿En qué puedo asistirte?`,
+    `${saludo}, ${userName}. Permíteme señalar que el motor está en temperatura óptima y el combustible es suficiente para cualquier trayecto razonable. ¿Adónde vamos?`,
   ]
 
   return variants[Math.floor(Math.random() * variants.length)]
@@ -501,7 +632,7 @@ function NavOverlay({ nav, onOpen, onClose }) {
 function SettingsField({ label, val, set, ph, type = 'text', hint }) {
   return (
     <div>
-      <label className="block text-[10px] text-orange-800 tracking-widest mb-1">{label}</label>
+      <label className="block text-[9px] text-orange-500 tracking-widest mb-1">{label}</label>
       <input
         type={type}
         value={val}
@@ -511,9 +642,9 @@ function SettingsField({ label, val, set, ph, type = 'text', hint }) {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        className="w-full bg-gray-950 border border-orange-900 rounded px-3 py-2 text-orange-300 text-xs font-mono outline-none focus:border-orange-600"
+        className="w-full bg-black border border-orange-800 rounded px-3 py-2 text-orange-200 text-xs font-mono outline-none focus:border-orange-500 placeholder:text-orange-900"
       />
-      {hint && <p className="text-[9px] text-gray-700 mt-1">{hint}</p>}
+      {hint && <p className="text-[9px] text-gray-500 mt-1">{hint}</p>}
     </div>
   )
 }
@@ -563,93 +694,136 @@ async function testClaude(key, onResult) {
 // ─── Settings Panel ───────────────────────────────────────────────────────────
 function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, onConnectOBD, onDisconnectOBD }) {
   const saved = loadSettings()
-  const [apiKey,    setApiKey]    = useState(saved.apiKey    || '')
-  const [voiceId,   setVoiceId]   = useState(saved.voiceId   || '')
+  const [userName,      setUserName]      = useState(saved.userName      || '')
+  const [vehicleName,   setVehicleName]   = useState(saved.vehicleName   || '')
+  const [baseCity,      setBaseCity]      = useState(saved.baseCity      || '')
+  const [silentMode,    setSilentMode]    = useState(saved.silentMode    || false)
+  const [speedAlertKmh, setSpeedAlertKmh] = useState(saved.speedAlertKmh ?? 130)
   const [claudeKey, setClaudeKey] = useState(saved.claudeKey || '')
-  const [spotifyId, setSpotifyId] = useState(saved.spotifyId || '')
   const [obdUrl,    setObdUrl]    = useState(saved.obdUrl    || '')
-  const [voiceTest,  setVoiceTest]  = useState('idle') // idle | playing | ok | error
-  const [claudeTest, setClaudeTest] = useState('idle') // idle | testing | ok | invalid | error
+  const [voiceTest,  setVoiceTest]  = useState('idle')
+  const [claudeTest, setClaudeTest] = useState('idle')
 
   const save = () => {
-    saveSettings({ apiKey: apiKey.trim(), voiceId: voiceId.trim(), claudeKey: claudeKey.trim(), spotifyId: spotifyId.trim(), obdUrl: obdUrl.trim() })
+    saveSettings({
+      ...saved,
+      userName: userName.trim(),
+      vehicleName: vehicleName.trim(),
+      baseCity: baseCity.trim(),
+      silentMode,
+      speedAlertKmh: Number(speedAlertKmh) || 130,
+      claudeKey: claudeKey.trim(),
+      obdUrl: obdUrl.trim(),
+    })
     onClose()
   }
 
   const OBD_STATUS_LABEL = { disconnected: 'DESCONECTADO', connecting: 'CONECTANDO...', initializing: 'INICIANDO...', connected: 'CONECTADO ✓' }
-  const OBD_STATUS_COLOR = { disconnected: 'text-gray-700', connecting: 'text-yellow-600', initializing: 'text-blue-600', connected: 'text-green-500' }
+  const OBD_STATUS_COLOR = { disconnected: 'text-gray-500', connecting: 'text-yellow-500', initializing: 'text-blue-400', connected: 'text-green-400' }
+
+  const SectionHeader = ({ color = 'text-orange-500', borderColor = 'border-orange-900', children }) => (
+    <p className={`text-[9px] ${color} tracking-[0.25em] border-b ${borderColor} pb-1 pt-3`}>{children}</p>
+  )
+
+  const Toggle = ({ val, set, label, hint }) => (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <span className="text-[10px] text-orange-400 tracking-wider">{label}</span>
+        {hint && <p className="text-[9px] text-gray-500 mt-0.5">{hint}</p>}
+      </div>
+      <button onClick={() => set(!val)}
+        className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ml-4 ${val ? 'bg-orange-600' : 'bg-gray-800'}`}>
+        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${val ? 'left-5' : 'left-0.5'}`} />
+      </button>
+    </div>
+  )
 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
-      className="fixed inset-0 z-[200] flex flex-col overflow-y-auto px-6"
-      style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'max(24px, env(safe-area-inset-bottom, 0px) + 16px)' }}
-      style={{ background: 'rgba(0,0,0,0.97)', fontFamily: "'Courier New',monospace" }}>
-      <h2 className="text-lg font-bold tracking-widest text-orange-500 mb-5 text-center">CONFIGURACIÓN</h2>
-      <div className="space-y-4">
-        <p className="text-[10px] text-orange-700 tracking-widest border-b border-orange-950 pb-1">VOZ — ELEVENLABS</p>
+      className="fixed inset-0 z-[200] flex flex-col overflow-y-auto px-5"
+      style={{ paddingTop: 'max(28px, env(safe-area-inset-top, 0px) + 20px)', paddingBottom: 'max(20px, env(safe-area-inset-bottom, 0px) + 16px)', background: 'rgba(0,0,0,0.98)', fontFamily: "'Courier New',monospace" }}>
+      <h2 className="text-base font-bold tracking-widest text-orange-400 mb-4 text-center">AJUSTES DEL SISTEMA</h2>
+
+      <div className="space-y-3">
+        {/* ── AGENT IDENTITY ── */}
+        <SectionHeader color="text-orange-500" borderColor="border-orange-900">IDENTIDAD DEL AGENTE</SectionHeader>
+        <SettingsField label="NOMBRE DEL AGENTE" val={userName} set={setUserName} ph="Tu nombre" hint="Kitt se dirige a ti siempre por este nombre." />
+        <SettingsField label="NOMBRE DEL VEHÍCULO (opcional)" val={vehicleName} set={setVehicleName} ph="ej: Fantasma, Sombra..." hint='Kitt llamará a tu coche por este nombre. Ej: "El Fantasma está listo."' />
+        <SettingsField label="CIUDAD BASE (opcional)" val={baseCity} set={setBaseCity} ph="ej: Madrid, Barcelona..." hint="Kitt conoce tu base y puede usarla en rutas y comentarios." />
+
+        {/* ── BEHAVIOUR ── */}
+        <SectionHeader color="text-orange-500" borderColor="border-orange-900">PROTOCOLO DE COMPORTAMIENTO</SectionHeader>
+        <Toggle val={silentMode} set={setSilentMode}
+          label="PROTOCOLO DE SILENCIO"
+          hint="Kitt solo habla cuando le preguntas. Sin comentarios espontáneos." />
         <div>
-          <label className="block text-[10px] text-orange-800 tracking-widest mb-1">API KEY</label>
-          <div className="w-full bg-gray-950 border border-green-900 rounded px-3 py-2 text-green-700 text-xs font-mono flex items-center justify-between">
-            <span>sk_••••••••••••••••••••</span>
-            <span className="text-[9px] text-green-800">✓ CONFIGURADA</span>
+          <label className="block text-[9px] text-orange-500 tracking-widest mb-1">ALERTA DE VELOCIDAD MÁXIMA (km/h)</label>
+          <div className="flex items-center gap-3">
+            <input type="number" value={speedAlertKmh} onChange={e => setSpeedAlertKmh(e.target.value)} min={80} max={250}
+              className="w-24 bg-black border border-orange-800 rounded px-3 py-2 text-orange-200 text-xs font-mono outline-none focus:border-orange-500" />
+            <span className="text-[9px] text-gray-500">Kitt avisa si superas esta velocidad</span>
           </div>
-          <p className="text-[9px] text-gray-700 mt-1">ElevenLabs preconfigurada.</p>
         </div>
+
+        {/* ── VOICE ── */}
+        <SectionHeader color="text-orange-500" borderColor="border-orange-900">VOZ — ELEVENLABS</SectionHeader>
         <div>
-          <label className="block text-[10px] text-orange-800 tracking-widest mb-1">VOICE ID — VOZ KITT</label>
-          <div className="w-full bg-gray-950 border border-green-900 rounded px-3 py-2 text-green-700 text-xs font-mono flex items-center justify-between">
-            <span>{KITT_VOICE_ID}</span>
-            <span className="text-[9px] text-green-800">✓ KITT</span>
+          <label className="block text-[9px] text-orange-500 tracking-widest mb-1">API KEY</label>
+          <div className="w-full bg-black border border-green-900 rounded px-3 py-2 text-green-600 text-xs font-mono flex items-center justify-between">
+            <span>sk_••••••••••••••••••••</span>
+            <span className="text-[9px] text-green-700">✓ CONFIGURADA</span>
           </div>
-          <p className="text-[9px] text-gray-700 mt-1">Voz clonada de Kitt preconfigurada.</p>
+          <p className="text-[9px] text-gray-500 mt-1">ElevenLabs preconfigurada con la voz de Kitt.</p>
         </div>
         <button onClick={() => testElevenLabs(setVoiceTest)} disabled={voiceTest === 'playing'}
           className="w-full py-2 font-mono text-xs font-bold border rounded disabled:opacity-40"
-          style={{ color: voiceTest === 'ok' ? '#22c55e' : voiceTest === 'error' ? '#ef4444' : '#ea580c', borderColor: voiceTest === 'ok' ? '#166534' : voiceTest === 'error' ? '#7f1d1d' : '#7c2d12' }}>
-          {voiceTest === 'playing' ? '▶ REPRODUCIENDO...' : voiceTest === 'ok' ? '✓ VOZ OK' : voiceTest === 'error' ? '✕ ERROR — revisar clave o créditos' : '▶ PROBAR VOZ KITT'}
+          style={{ color: voiceTest === 'ok' ? '#4ade80' : voiceTest === 'error' ? '#f87171' : '#fb923c', borderColor: voiceTest === 'ok' ? '#166534' : voiceTest === 'error' ? '#7f1d1d' : '#9a3412' }}>
+          {voiceTest === 'playing' ? '▶ REPRODUCIENDO...' : voiceTest === 'ok' ? '✓ VOZ OK' : voiceTest === 'error' ? '✕ ERROR — revisar créditos' : '▶ PROBAR VOZ KITT'}
         </button>
 
-        <p className="text-[10px] text-blue-800 tracking-widest border-b border-blue-950 pb-1 pt-2">INTELIGENCIA — CLAUDE AI</p>
-        <SettingsField label="ANTHROPIC API KEY" val={claudeKey} set={k => { setClaudeKey(k); setClaudeTest('idle') }} ph="sk-ant-xxxxxxxx" type="password"
+        {/* ── AI ── */}
+        <SectionHeader color="text-blue-400" borderColor="border-blue-900">INTELIGENCIA — CLAUDE AI</SectionHeader>
+        <SettingsField label="ANTHROPIC API KEY" val={claudeKey} set={k => { setClaudeKey(k); setClaudeTest('idle') }} ph="sk-ant-api03-..." type="password"
           hint="console.anthropic.com → API Keys" />
         {claudeKey
-          ? <p className="text-[9px] text-green-800 font-mono">✓ KITT usará Claude para respuestas inteligentes</p>
-          : <p className="text-[9px] text-gray-700 font-mono">Sin clave: respuestas por palabras clave</p>}
+          ? <p className="text-[9px] text-green-600 font-mono">✓ Kitt usará Claude para conversación inteligente</p>
+          : <p className="text-[9px] text-gray-500 font-mono">Sin clave: respuestas por palabras clave</p>}
         <button
           onClick={() => { setClaudeTest('testing'); testClaude(claudeKey.trim(), setClaudeTest) }}
           disabled={!claudeKey.trim() || claudeTest === 'testing'}
           className="w-full py-2 font-mono text-xs font-bold border rounded disabled:opacity-40"
           style={{
-            color: claudeTest === 'ok' ? '#22c55e' : claudeTest === 'invalid' ? '#ef4444' : claudeTest === 'error' ? '#f97316' : '#60a5fa',
+            color: claudeTest === 'ok' ? '#4ade80' : claudeTest === 'invalid' ? '#f87171' : claudeTest === 'error' ? '#fb923c' : '#60a5fa',
             borderColor: claudeTest === 'ok' ? '#166534' : claudeTest === 'invalid' ? '#7f1d1d' : claudeTest === 'error' ? '#431407' : '#1e3a5f',
           }}>
-          {claudeTest === 'testing' ? 'PROBANDO...' : claudeTest === 'ok' ? '✓ CLAUDE CONECTADO' : claudeTest === 'invalid' ? '✕ CLAVE INVÁLIDA' : claudeTest === 'error' ? '✕ ERROR — Sin internet?' : '▶ PROBAR CONEXIÓN CLAUDE'}
+          {claudeTest === 'testing' ? 'PROBANDO...' : claudeTest === 'ok' ? '✓ CLAUDE CONECTADO' : claudeTest === 'invalid' ? '✕ CLAVE INVÁLIDA' : claudeTest === 'error' ? '✕ ERROR — ¿Sin internet?' : '▶ PROBAR CONEXIÓN CLAUDE'}
         </button>
 
-        <p className="text-[10px] text-green-800 tracking-widest border-b border-green-950 pb-1 pt-2">MÚSICA — SPOTIFY PREMIUM</p>
+        {/* ── SPOTIFY ── */}
+        <SectionHeader color="text-green-400" borderColor="border-green-900">MÚSICA — SPOTIFY PREMIUM</SectionHeader>
         <div>
-          <label className="block text-[10px] text-orange-800 tracking-widest mb-1">CLIENT ID — APP KITT</label>
-          <div className="w-full bg-gray-950 border border-green-900 rounded px-3 py-2 text-green-700 text-xs font-mono flex items-center justify-between">
+          <label className="block text-[9px] text-orange-500 tracking-widest mb-1">CLIENT ID — APP KITT</label>
+          <div className="w-full bg-black border border-green-900 rounded px-3 py-2 text-green-600 text-xs font-mono flex items-center justify-between">
             <span className="truncate">{SPOTIFY_CLIENT_ID}</span>
-            <span className="text-[9px] text-green-800 ml-2 flex-shrink-0">✓</span>
+            <span className="text-[9px] text-green-700 ml-2 flex-shrink-0">✓</span>
           </div>
-          <p className="text-[9px] text-gray-700 mt-1">Asegúrate de añadir https://kitt-ai-agent.netlify.app como Redirect URI en el dashboard de Spotify.</p>
+          <p className="text-[9px] text-gray-500 mt-1">Redirect URI: https://kitt-ai-agent.netlify.app</p>
         </div>
         <button onClick={() => { save(); onSpotifyAuth(SPOTIFY_CLIENT_ID) }}
-            className="w-full py-2 font-mono text-xs font-bold text-black bg-green-600 rounded border border-green-400">
-            ▶ CONECTAR SPOTIFY
-          </button>
-        <p className="text-[9px] text-gray-700">Redirect URI: https://kitt-ai-agent.netlify.app</p>
+          className="w-full py-2 font-mono text-xs font-bold text-black bg-green-700 rounded border border-green-500">
+          ▶ CONECTAR SPOTIFY
+        </button>
 
-        <p className="text-[10px] text-red-900 tracking-widest border-b border-red-950 pb-1 pt-2">OBD-II WIFI REAL</p>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[9px] font-mono text-gray-600">ESTADO</span>
+        {/* ── OBD ── */}
+        <SectionHeader color="text-red-400" borderColor="border-red-900">OBD-II WIFI REAL</SectionHeader>
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-mono text-gray-500">ESTADO</span>
           <span className={`text-[9px] font-mono font-bold ${OBD_STATUS_COLOR[obdStatus]}`}>{OBD_STATUS_LABEL[obdStatus]}</span>
         </div>
         <SettingsField label="IP ADAPTADOR (opcional)" val={obdUrl} set={setObdUrl} ph="ws://192.168.0.10:35000"
           hint="Deja vacío para autodetección. Formato: ws://IP:PUERTO" />
-        <p className="text-[9px] text-gray-700 leading-relaxed">
-          Conecta el iPhone al WiFi del adaptador OBD (no a tu router). Luego toca Conectar.
+        <p className="text-[9px] text-gray-500 leading-relaxed">
+          Conecta al WiFi del adaptador OBD. Luego toca Conectar.
         </p>
         {obdStatus === 'connected'
           ? <button onClick={() => { onDisconnectOBD(); onClose() }}
@@ -658,20 +832,22 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
             </button>
           : <button onClick={() => { save(); onConnectOBD(obdUrl.trim() || null) }}
               disabled={obdStatus === 'connecting' || obdStatus === 'initializing'}
-              className="w-full py-2 font-mono text-xs font-bold text-black bg-red-600 rounded border border-red-400 disabled:opacity-40">
+              className="w-full py-2 font-mono text-xs font-bold text-black bg-red-700 rounded border border-red-500 disabled:opacity-40">
               {obdStatus === 'connecting' || obdStatus === 'initializing' ? 'CONECTANDO...' : '⚡ CONECTAR OBD WIFI'}
             </button>
         }
 
-        <p className="text-[10px] text-gray-700 tracking-widest border-b border-gray-900 pb-1 pt-2">ENTRENAMIENTO OBD</p>
+        {/* ── TRAINING ── */}
+        <SectionHeader color="text-gray-500" borderColor="border-gray-800">DATOS DE ENTRENAMIENTO</SectionHeader>
         <button onClick={onExportTraining}
-          className="w-full py-2 font-mono text-xs text-gray-500 border border-gray-800 rounded active:scale-95">
-          ↓ EXPORTAR DATOS DE CONVERSACIÓN (JSON)
+          className="w-full py-2 font-mono text-xs text-gray-400 border border-gray-700 rounded active:scale-95">
+          ↓ EXPORTAR CONVERSACIONES (JSON)
         </button>
-        <p className="text-[9px] text-gray-800">Cada conversación queda guardada con contexto OBD para entrenar el agente.</p>
+        <p className="text-[9px] text-gray-600">Conversaciones guardadas con contexto OBD para entrenar el agente.</p>
       </div>
+
       <div className="flex gap-3 mt-6">
-        <button onClick={onClose} className="flex-1 py-3 font-mono text-xs text-gray-600 border border-gray-800 rounded">CANCELAR</button>
+        <button onClick={onClose} className="flex-1 py-3 font-mono text-xs text-gray-400 border border-gray-700 rounded">CANCELAR</button>
         <button onClick={save} className="flex-1 py-3 font-mono text-xs font-bold text-black bg-orange-600 rounded">GUARDAR</button>
       </div>
     </motion.div>
@@ -877,6 +1053,7 @@ export default function Kitt() {
   const [triviaMode,   setTriviaMode]   = useState(false)
   const [triviaTimer,  setTriviaTimer]  = useState(null) // null | 0-15
   const [triviaScore,  setTriviaScore]  = useState({ correct: 0, total: 0 })
+  const [showOnboarding, setShowOnboarding] = useState(() => isFirstRun())
 
   const pausedRef    = useRef(false)
   const listeningRef = useRef(false)
@@ -930,6 +1107,7 @@ export default function Kitt() {
   const idleSecsRef     = useRef(0)
   const speedHistRef    = useRef([])
   const lastSpokenRef   = useRef({})
+  const lastSpeedAlertRef = useRef(0)
 
   // Force landscape orientation (PWA / installed app)
   useEffect(() => {
@@ -1595,6 +1773,7 @@ export default function Kitt() {
           routeCtx,
           history: messagesRef.current,
           gpsPos:  userPosRef.current ?? null,
+          userName: loadSettings().userName,
         })
         if (!response) response = getKittResponse(text, obdRef.current, isSimulated)
       } catch (err) {
@@ -1789,6 +1968,17 @@ export default function Kitt() {
       if (pausedRef.current || speakingRef.current || thinkingRef.current) return
       const obd = obdRef.current
 
+      const { silentMode, speedAlertKmh: alertKmh = 130 } = loadSettings()
+
+      // Speed alert fires even in silent mode (safety)
+      if (obd.speed > alertKmh && Date.now() - lastSpeedAlertRef.current > 60000) {
+        lastSpeedAlertRef.current = Date.now()
+        speak(`${loadSettings().userName}, voy a ${obd.speed} kilómetros por hora. Por encima del límite configurado.`)
+        return
+      }
+
+      if (silentMode) return  // Protocolo de silencio activo — no proactive speech
+
       // Track OFCO
       if (isOfcoActive(obd)) {
         if (!ofcoStartRef.current) ofcoStartRef.current = Date.now()
@@ -1944,12 +2134,17 @@ export default function Kitt() {
 
   const kittHintText = listening ? '' : speaking ? '' : 'TOCA PARA HABLAR'
 
+  // ── Onboarding check ─────────────────────────────────────────────────────
+  if (showOnboarding) return (
+    <OnboardingScreen onComplete={(name) => setShowOnboarding(false)} />
+  )
+
   // ── Unlock screen ────────────────────────────────────────────────────────
   if (!unlocked) return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#000', fontFamily: "'Eurostile',sans-serif" }}>
       <div style={{ position: 'fixed', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,1) 2px,rgba(255,255,255,1) 4px)', pointerEvents: 'none' }} />
       <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '0.4em', color: '#f97316', marginBottom: 12, textShadow: '0 0 24px rgba(255,120,0,0.9)' }}>K·I·T·T</h1>
-      <p style={{ fontSize: 9, letterSpacing: '0.18em', color: '#7c2d12', marginBottom: 64, fontFamily: 'monospace' }}>AGENTE IA · VEHÍCULO DE CRISTIAN</p>
+      <p style={{ fontSize: 9, letterSpacing: '0.18em', color: '#7c2d12', marginBottom: 64, fontFamily: 'monospace' }}>AGENTE IA · {loadSettings().userName.toUpperCase()}</p>
       <motion.button onClick={handleUnlock} whileTap={{ scale: 0.93 }}
         animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }}
         style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.2em', fontSize: 14, color: '#f97316', border: '1px solid #9a3412', padding: '16px 40px', borderRadius: 8, background: 'transparent', cursor: 'pointer', boxShadow: '0 0 20px rgba(255,80,0,0.3)' }}>
