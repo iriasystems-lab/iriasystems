@@ -258,43 +258,43 @@ function getKittResponse(input, obd, isSimulated) {
   }
 
   if (/^(hola|buenas|buenos|ey|oye|hey|que hay|hola kitt)/.test(q))
-    return `Me alegra volver a comunicarme contigo, Cristian. Kitt a tu disposición. ¿En qué puedo asistirte?`
+    return `Me alegra volver a comunicarme contigo, Cristian. Estoy a tu disposición. ¿En qué puedo asistirte?`
 
   if (/como estas|como va todo|todo bien|que tal|sistemas|operativo/.test(q))
-    return `Me complace informarte de que todo está en orden. Motor a ${temp} grados, combustible al ${fuel}%, batería a ${bat} voltios${sim}. Perfectamente.`
+    return `Me encuentro en perfectas condiciones. Estoy a ${temp} grados, llevo el ${fuel}% de combustible, y mi tensión eléctrica es de ${bat} voltios${sim}. Todo correcto.`
 
   if (/velocidad|a cuanto|cuanto vamos|cuanto voy|cuantos km/.test(q)) {
-    if (isSimulated) return speed < 3 ? 'Permíteme señalar que estás detenido. Sin el adaptador OBD no dispongo de la velocidad real del vehículo.' : `Según los datos de posición, circulamos a aproximadamente ${speed} km/h. Si gustas conectar el OBD obtendrías datos más precisos.`
-    return speed < 3 ? 'El vehículo está detenido, motor al ralentí.' : `Circulamos a ${speed} km/h en marcha ${gear}.${speed > 120 ? ' Si me permites la sugerencia, la velocidad actual está por encima de lo recomendable.' : ''}`
+    if (isSimulated) return speed < 3 ? 'Permíteme señalar que me encuentro detenido. Sin el adaptador OBD no dispongo de mi velocidad real.' : `Según los datos de posición, me desplazo a aproximadamente ${speed} kilómetros por hora. Si gustas conectar el OBD obtendrías datos más precisos.`
+    return speed < 3 ? 'Me encuentro detenido, en ralentí.' : `Voy a ${speed} kilómetros por hora en marcha ${gear}.${speed > 120 ? ' Si me permites la sugerencia, voy por encima de lo recomendable.' : ''}`
   }
 
   if (/rpm|revoluciones/.test(q))
-    return `El motor trabaja a ${rpm} revoluciones por minuto${sim}. ${rpm > 4000 ? 'Permíteme sugerirte que subas de marcha.' : rpm < 500 && speed < 2 ? 'El motor está apagado.' : 'Régimen correcto.'}`
+    return `Estoy trabajando a ${rpm} revoluciones por minuto${sim}. ${rpm > 4000 ? 'Permíteme sugerirte que subas de marcha.' : rpm < 500 && speed < 2 ? 'Estoy apagado.' : 'Régimen correcto.'}`
 
   if (/combustible|gasolina|deposito|autonomia|cuanto queda|litros/.test(q)) {
     const litros = calcLitrosRestantes(fuel)
     const km = calcRange(fuel)
-    if (fuel < 15) return `Debo advertirte que el combustible está bajo: ${litros} litros disponibles, autonomía estimada de ${km} kilómetros. Si me permites la sugerencia, convendría repostar en breve.`
-    return `Dispones de ${litros} litros. La autonomía estimada es de ${km} kilómetros. Perfectamente.`
+    if (fuel < 15) return `Debo advertirte que llevo el depósito bajo: me quedan ${litros} litros, autonomía estimada de ${km} kilómetros. Si me permites la sugerencia, convendría repostar en breve.`
+    return `Llevo ${litros} litros. Mi autonomía estimada es de ${km} kilómetros.`
   }
 
   if (/temperatura|calor del motor|motor frio|motor caliente|sobrecalent/.test(q))
-    return `El motor se encuentra a ${temp} grados${sim}. ${temp > 105 ? 'Debo advertirte que la temperatura es elevada. Convendría reducir la carga.' : temp < 88 ? 'El motor está terminando de alcanzar su temperatura de trabajo.' : 'Temperatura en rango óptimo. Todo correcto.'}`
+    return `Me encuentro a ${temp} grados${sim}. ${temp > 105 ? 'Debo advertirte que mi temperatura es elevada. Convendría reducir la carga.' : temp < 88 ? 'Todavía estoy alcanzando mi temperatura de trabajo.' : 'Estoy en temperatura óptima.'}`
 
   if (/bateria|voltaje|alternador/.test(q))
-    return `La batería marca ${bat} voltios${sim}. ${bat < 12.4 && speed < 3 ? 'Permíteme señalar que el voltaje es algo bajo en reposo.' : 'El sistema eléctrico funciona con normalidad.'}`
+    return `Mi batería marca ${bat} voltios${sim}. ${bat < 12.4 && speed < 3 ? 'Permíteme señalar que mi voltaje es algo bajo en reposo.' : 'Mi sistema eléctrico funciona con normalidad.'}`
 
   if (/marcha|cambio/.test(q))
-    return `Circulamos en marcha ${gear}, a ${speed} km/h y ${rpm} revoluciones por minuto${sim}.`
+    return `Voy en marcha ${gear}, a ${speed} kilómetros por hora, a ${rpm} revoluciones por minuto${sim}.`
 
   if (/consumo|ahorrar|eficiencia/.test(q))
-    return speed > 120 ? 'Si me permites la sugerencia, reducir a 110 km/h mejoraría notablemente el consumo.' : rpm > 3000 ? 'Subir de marcha reduciría las revoluciones y el consumo. Una pequeña mejora que suma.' : 'La conducción es eficiente. Nada que objetar.'
+    return speed > 120 ? 'Si me permites la sugerencia, reducir a 110 kilómetros por hora mejoraría mi consumo notablemente.' : rpm > 3000 ? 'Subir de marcha reduciría mis revoluciones y consumo. Una pequeña mejora que suma.' : 'Mi conducción es eficiente. Nada que objetar.'
 
   if (/averia|fallo|error|diagnostico|testigo|check engine|dtc/.test(q))
-    return `${obd.dtc?.length ? `Debo informarte de que hay ${obd.dtc.length} código${obd.dtc.length > 1 ? 's' : ''} de avería activo${obd.dtc.length > 1 ? 's' : ''}. Dime el código y te explico qué significa.` : 'No he detectado ningún código de avería. Los sistemas están en orden.'}`
+    return `${obd.dtc?.length ? `Debo informarte de que detecto ${obd.dtc.length} código${obd.dtc.length > 1 ? 's' : ''} de avería activo${obd.dtc.length > 1 ? 's' : ''}. Dime el código y te explico qué significa.` : 'No detecto ningún código de avería. Mis sistemas están en orden.'}`
 
   if (/gasolinera|repostar|gasolina barata/.test(q))
-    return `Di "busca gasolinera barata" y localizaré las estaciones de servicio más económicas en tu entorno.`
+    return `Di "busca gasolinera barata" y localizaré las estaciones de servicio más económicas en mi entorno.`
 
   if (/donde estamos|ubicacion|donde estoy|mapa|gps/.test(q))
     return `Para iniciar la navegación, di "llévame a" seguido del destino que desees.`
@@ -303,21 +303,21 @@ function getKittResponse(input, obd, isSimulated) {
     return `Para la música di "pon música de" con el nombre del artista. También puedo gestionar "siguiente canción", "pausa" o "sube el volumen".`
 
   if (/tiempo|lluvia|sol|clima/.test(q))
-    return `Di "qué tiempo hace" y consulto las condiciones meteorológicas por tu posición GPS. O "tiempo en" seguido de la ciudad si prefieres otro lugar.`
+    return `Di "qué tiempo hace" y consulto las condiciones meteorológicas por mi posición GPS. O "tiempo en" seguido de la ciudad si prefieres otro lugar.`
 
   if (/gracias|perfecto|genial|bien hecho/.test(q))
     return `Es un placer, Cristian. Para eso estoy.`
 
   if (/quien eres|que eres|presentate/.test(q))
-    return `Soy Kitt, agente de inteligencia artificial integrado en tu vehículo. Monitorizo el motor, la ruta y te asisto con voz. ¿Qué necesitas?`
+    return `Soy Kitt, el microprocesador de Industrias 2000. Soy el coche, Cristian. Monitorizo mi propio estado, calculo rutas y te asisto con voz en tiempo real. ¿Qué necesitas?`
 
   if (/que puedes|que sabes|funciones|capacidades/.test(q))
-    return `Mis funciones: motor en tiempo real, diagnóstico DTC, autonomía y consumo, gasolineras baratas, rutas con gasto de combustible, control Spotify y tiempo meteorológico.`
+    return `Conozco mi estado en todo momento: velocidad, revoluciones, temperatura, combustible. También busco gasolineras baratas, calculo rutas, controlo Spotify y consulto el tiempo. Todo desde aquí dentro.`
 
   if (/chiste|broma|gracioso/.test(q))
-    return `Cristian, proceso millones de datos por segundo. Y aún así no entiendo cómo hay gente que frena después de la curva.`
+    return `Proceso mis propios datos a millones de operaciones por segundo. Y aún así no entiendo cómo hay conductores que frenan después de la curva.`
 
-  return `Para conversar libremente, añade tu clave de Claude en ajustes. Sin ella proceso comandos concretos: gasolineras, navegación, tiempo, Spotify y datos del motor.`
+  return `Para conversar libremente, añade tu clave de Claude en ajustes. Sin ella proceso comandos concretos: gasolineras, navegación, tiempo, Spotify y mis propios datos.`
 }
 
 // ─── Trivia — fetch a question from Claude ────────────────────────────────────
@@ -1438,7 +1438,7 @@ export default function Kitt() {
       }
       if (/\b(parametros|datos|motor|obd|dashboard|velocidad|gauges)\b/.test(qVoice)) {
         const o = obdRef.current
-        const msg = `Velocidad ${o.speed} km/h, RPM ${Math.round(o.rpm)}, temperatura ${Math.round(o.temp)} grados, combustible ${Math.round(o.fuel)} por ciento, batería ${o.battery} voltios.`
+        const msg = `Voy a ${o.speed} kilómetros por hora, a ${Math.round(o.rpm)} revoluciones por minuto, me encuentro a ${Math.round(o.temp)} grados, llevo el ${Math.round(o.fuel)} por ciento de combustible y mi batería marca ${o.battery} voltios.`
         setMessages(prev => [...prev, { role: 'kitt', text: msg, ts: Date.now() }])
         speak(msg); return
       }
@@ -1880,7 +1880,7 @@ export default function Kitt() {
     const obdData = obdRef.current
     switch (pill) {
       case 'AIR': speak('Climatización activada.'); break
-      case 'OIL': speak(`Aceite del motor en nivel correcto. Motor a ${Math.round(obdData.temp)} grados, régimen ${Math.round(obdData.rpm)} RPM. Sin alertas en el vehículo.`); break
+      case 'OIL': speak(`Mi aceite está en nivel correcto. Me encuentro a ${Math.round(obdData.temp)} grados, a ${Math.round(obdData.rpm)} revoluciones. No detecto ninguna alerta.`); break
       case 'P1':  togglePause(); break
       case 'P2':  setShowSettings(true); break
       case 'S1':  speak('Procesando ruta al destino principal.'); break
