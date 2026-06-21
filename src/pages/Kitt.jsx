@@ -168,6 +168,8 @@ function TypewriterText({ text, speed = 22, onDone }) {
 
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
 const INTRO_TEXT = `ENLACE CON K.I.T.T. ESTABLECIDO.\n\nSoy la voz del microprocesador de Industrias 2000.\n\nHas sido seleccionado para el programa. A partir de este momento no conduces solo: soy tu copiloto, tu sistema de navegación y tu inteligencia de misión.\n\nAntes de iniciar la primera patrulla, necesito identificarte.`
+const INTRO_SPEECH = `Enlace con Kitt establecido. Soy la voz del microprocesador de Industrias 2000. Has sido seleccionado para el programa. A partir de este momento no conduces solo: soy tu copiloto, tu sistema de navegación y tu inteligencia de misión. Antes de iniciar la primera patrulla, necesito identificarte.`
+const PHASE1_SPEECH = `Calibración de identidad iniciada. Introduce tu nombre de agente para que pueda reconocerte siempre. La clave de Claude es opcional — puedes añadirla más tarde desde ajustes.`
 
 function OnboardingScreen({ onComplete }) {
   const [phase, setPhase]         = useState(0)
@@ -175,9 +177,55 @@ function OnboardingScreen({ onComplete }) {
   const [userName, setUserName]   = useState('')
   const [claudeKey, setClaudeKey] = useState(loadSettings().claudeKey || '')
   const [claudeTest, setClaudeTest] = useState('idle')
+  const musicRef   = useRef(null)
+  const ttsRef     = useRef(null)
+
+  // Intro music — loop during entire onboarding
+  useEffect(() => {
+    const audio = new Audio('/intro-corta-coche-fantastico.MP3')
+    audio.loop   = true
+    audio.volume = 0.3
+    musicRef.current = audio
+    audio.play().catch(() => {})
+    return () => { audio.pause(); audio.src = '' }
+  }, [])
+
+  // ElevenLabs TTS for onboarding narration
+  const kittSpeak = useCallback(async (text) => {
+    if (ttsRef.current) { ttsRef.current.pause(); ttsRef.current = null }
+    try {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${KITT_VOICE_ID}`, {
+        method: 'POST',
+        headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': ELEVENLABS_KEY },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: { stability: 0.45, similarity_boost: 0.88, style: 0.22, use_speaker_boost: true },
+        }),
+      })
+      if (!res.ok) return
+      const blob  = await res.blob()
+      const url   = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      ttsRef.current = audio
+      if (musicRef.current) musicRef.current.volume = 0.06  // duck music while Kitt speaks
+      const restore = () => { URL.revokeObjectURL(url); ttsRef.current = null; if (musicRef.current) musicRef.current.volume = 0.3 }
+      audio.onended = restore
+      audio.onerror = restore
+      await audio.play()
+    } catch {}
+  }, [])
+
+  // Speak on each phase
+  useEffect(() => {
+    if (phase === 0) kittSpeak(INTRO_SPEECH)
+    if (phase === 1) kittSpeak(PHASE1_SPEECH)
+  }, [phase, kittSpeak])
 
   const handleFinish = () => {
     if (!userName.trim()) return
+    if (musicRef.current) { musicRef.current.pause(); musicRef.current = null }
+    if (ttsRef.current)   { ttsRef.current.pause();   ttsRef.current   = null }
     saveSettings({ ...loadSettings(), userName: userName.trim(), claudeKey: claudeKey.trim() })
     markSetupDone()
     onComplete(userName.trim())
