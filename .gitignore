@@ -8,6 +8,7 @@ dist/
 # Dashboard credentials — never commit
 public/dashboard/config.js
 
-# Generated PDFs — not versioned
+# Generated documents — not versioned
 KITT_Concurso_ClubIA.pdf
 KITT_Memoria_Proyecto.pdf
+KITT_Memoria_Proyecto.docx
