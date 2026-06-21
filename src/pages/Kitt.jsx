@@ -1698,23 +1698,24 @@ export default function Kitt() {
   // Cleanup on unmount
   useEffect(() => () => obdWifiRef.current?.disconnect(), [])
 
-  // ── GPS — position + auto-scenario from speed ─────────────────────────────
+  // ── GPS — position + auto-scenario from speed (always active) ───────────
   useEffect(() => {
     if (!navigator.geolocation) return
+    let lastScenario = null
     const id = navigator.geolocation.watchPosition(
       p => {
         setUserPos({ lat: p.coords.latitude, lon: p.coords.longitude })
-        // Auto-update scenario from GPS speed only when OBD not connected
-        if (obdStatusRef.current !== 'connected' && p.coords.speed != null) {
-          const kmh = p.coords.speed * 3.6
-          if      (kmh < 3)   setScenario('parked')
-          else if (kmh < 60)  setScenario('city')
-          else if (kmh < 100) setScenario('road')
-          else                setScenario('highway')
-        }
+        if (p.coords.speed == null) return
+        const kmh = p.coords.speed * 3.6
+        const next = kmh < 3   ? 'parked'
+                   : kmh < 15  ? 'idle'
+                   : kmh < 60  ? 'city'
+                   : kmh < 100 ? 'road'
+                   :             'highway'
+        if (next !== lastScenario) { lastScenario = next; setScenario(next) }
       },
       null,
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
     )
     return () => navigator.geolocation.clearWatch(id)
   }, [])

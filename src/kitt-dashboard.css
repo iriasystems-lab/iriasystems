@@ -1,10 +1,10 @@
-@font-face{font-family:'Eurostile';src:url('/dashboard/assets/eurostile.ttf') format('truetype');font-weight:100 900;}
+@font-face{font-family:'Eurostile';src:url('/fonts/eurostile.ttf') format('truetype');font-weight:100 900;}
 @font-face{font-family:'DSEG7';src:url('https://cdn.jsdelivr.net/gh/keshikan/DSEG@v0.46/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');font-display:swap;}
 :root{
   --red:#ff2a17;--amber:#ffb000;--green:#3dff66;--muted:#606060;--edge:#1d1d1d;
   --seg:'DSEG7','Eurostile',monospace;
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Eurostile',Arial,sans-serif;}
 /* dvh fix: 100vh in Chrome Android includes area behind URL bar; dvh uses the actual visible area */
 html{width:100%;height:-webkit-fill-available;height:100%;}
 body,#root{width:100%;overflow:hidden;}
