@@ -1321,6 +1321,10 @@ export default function Kitt() {
       .replace(/\bL\/h\b/gi, 'litros por hora')
       // Electrical
       .replace(/(\d+(?:\.\d+)?)\s*V\b/g, '$1 voltios')
+      // Temperature — °C / ° / degrees → grados
+      .replace(/(\d+(?:\.\d+)?)\s*°\s*C\b/gi, '$1 grados')
+      .replace(/(\d+(?:\.\d+)?)\s*°/g, '$1 grados')
+      .replace(/\bdegrees?\b/gi, 'grados')
       // Percentages already fine — browser reads % as "por ciento"
       // Symbols that TTS reads wrong
       .replace(/·/g, ' ')
