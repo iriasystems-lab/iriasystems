@@ -356,7 +356,7 @@ function calcLitrosFaltantes(fuelPct) {
   return (((100 - fuelPct) / 100) * CAR.depositoUtil).toFixed(1)
 }
 
-function buildGreeting() {
+function buildGreeting(obdConnected = false) {
   const { userName = 'Cristian' } = loadSettings()
   const hour = parseInt(
     new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: 'numeric', hour12: false }).format(new Date()),
@@ -366,15 +366,26 @@ function buildGreeting() {
     : hour >= 14 && hour < 21 ? 'Buenas tardes'
     : 'Buenas noches'
 
-  const variants = [
+  const simNote = obdConnected
+    ? ''
+    : ' Los parámetros que ves en pantalla corresponden a mis últimos registros — sin adaptador OBD no dispongo de datos en tiempo real.'
+
+  const variants = obdConnected ? [
     `${saludo}, ${userName}. Soy la voz del microprocesador de Industrias 2000. Todos los sistemas están operativos y a tu disposición.`,
-    `${saludo}, ${userName}. Me alegra volver a comunicarme contigo. Motor, ruta y sistemas en perfectas condiciones. ¿A dónde nos dirigimos?`,
-    `${saludo}, ${userName}. Kitt en línea. Si me permites la sugerencia, cuéntame el destino y me encargo de que llegues en las mejores condiciones.`,
-    `${saludo}, ${userName}. De vuelta al volante, como es debido. Los sistemas están listos. ¿Qué ruta tienes en mente?`,
+    `${saludo}, ${userName}. Me alegra volver a comunicarme contigo. Telemetría en tiempo real activa. ¿A dónde nos dirigimos?`,
+    `${saludo}, ${userName}. Kitt en línea con OBD conectado. Si me permites la sugerencia, cuéntame el destino y me encargo de que llegues en las mejores condiciones.`,
+    `${saludo}, ${userName}. De vuelta al volante. Todos los sistemas leen tus datos en tiempo real. ¿Qué ruta tienes en mente?`,
     `${saludo}, ${userName}. Un hombre puede marcar la diferencia, y yo estaré aquí para que lo consigas. ¿A dónde vamos?`,
-    `${saludo}, ${userName}. Kitt conectado y operativo. Dime el plan y lo ejecutamos juntos con la mayor eficiencia posible.`,
-    `${saludo}. Me complace informarte de que todos los sistemas funcionan con normalidad, ${userName}. ¿En qué puedo asistirte?`,
-    `${saludo}, ${userName}. Permíteme señalar que el motor está en temperatura óptima y el combustible es suficiente para cualquier trayecto razonable. ¿Adónde vamos?`,
+    `${saludo}, ${userName}. Kitt conectado y operativo con telemetría real. Dime el plan y lo ejecutamos juntos.`,
+    `${saludo}. Me complace informarte de que todos mis sistemas leen datos en tiempo real, ${userName}. ¿En qué puedo asistirte?`,
+  ] : [
+    `${saludo}, ${userName}. Soy la voz del microprocesador de Industrias 2000.${simNote}`,
+    `${saludo}, ${userName}. Me alegra volver a comunicarme contigo.${simNote} Cuando conectes el adaptador OBD tendré acceso a todos tus datos reales.`,
+    `${saludo}, ${userName}. Kitt en línea.${simNote} ¿A dónde nos dirigimos?`,
+    `${saludo}, ${userName}. De vuelta al volante, como es debido.${simNote}`,
+    `${saludo}, ${userName}. Un hombre puede marcar la diferencia, y yo estaré aquí para que lo consigas.${simNote}`,
+    `${saludo}, ${userName}. Kitt operativo.${simNote} Conéctame al OBD para telemetría en tiempo real.`,
+    `${saludo}. Estoy activo, ${userName}.${simNote}`,
   ]
 
   return variants[Math.floor(Math.random() * variants.length)]
@@ -1174,7 +1185,10 @@ export default function Kitt() {
   // PKCE: exchange auth code when Spotify redirects back with ?code=
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).get('code')) return
-    exchangePkceCode(SPOTIFY_CLIENT_ID, window.location.origin).then(token => {
+    const redirectUri = window.location.hostname === 'localhost'
+      ? window.location.origin
+      : 'https://kitt-ai-agent.netlify.app'
+    exchangePkceCode(SPOTIFY_CLIENT_ID, redirectUri).then(token => {
       if (!token) return
       setSpotifyToken(token)
       try { localStorage.setItem('kitt_sp_token', token) } catch {}
@@ -1914,7 +1928,7 @@ export default function Kitt() {
 
   const handleBootComplete = useCallback(() => {
     setBooting(false)
-    const greeting = buildGreeting()
+    const greeting = buildGreeting(obdStatusRef.current === 'connected')
     setMessages(prev => {
       const withGreeting = [...prev, { role: 'kitt', text: greeting, ts: Date.now() }]
       return withGreeting.slice(-200)
@@ -2112,7 +2126,10 @@ export default function Kitt() {
   }, [])
 
   const handleSpotifyAuth = useCallback(async (clientId) => {
-    window.location.href = await buildSpotifyAuthUrl(clientId, window.location.origin)
+    const redirectUri = window.location.hostname === 'localhost'
+      ? window.location.origin
+      : 'https://kitt-ai-agent.netlify.app'
+    window.location.href = await buildSpotifyAuthUrl(clientId, redirectUri)
   }, [])
 
   // ── Open Navigation — called within user gesture (button tap) ─────────────
