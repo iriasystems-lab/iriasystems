@@ -22,8 +22,8 @@ async function elevenLabsSpeak(text, apiKey, voiceId, onStart, onEnd, onError, o
       headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
       body: JSON.stringify({
         text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.72, similarity_boost: 0.80, style: 0.08, use_speaker_boost: true },
+        model_id: 'eleven_turbo_v2_5',
+        voice_settings: { stability: 0.82, similarity_boost: 0.78, style: 0.0, use_speaker_boost: true },
       }),
     })
     if (!res.ok) throw new Error(`ElevenLabs ${res.status}`)
@@ -1016,7 +1016,7 @@ export default function Kitt() {
   }, [])
 
   const speak = useCallback((text, { saveResume = true, onEnd: postEnd = null } = {}) => {
-    // Sanitize text for TTS — fix common artifacts before sending to any engine
+    // Sanitize text for TTS — fix abbreviations and artifacts before sending to any engine
     const ttsText = text
       .replace(/K·I·T·T/g, 'Kitt')
       .replace(/K\.I\.T\.T\./g, 'Kitt')
@@ -1025,6 +1025,22 @@ export default function Kitt() {
       .replace(/\bMichael\b/gi, 'Cristian')
       .replace(/Knight Industries Two Thousand/gi, 'agente de inteligencia artificial')
       .replace(/Knight Industries/gi, 'sistema de inteligencia artificial')
+      // Speed / distance units
+      .replace(/\bkm\/h\b/gi, 'kilómetros por hora')
+      .replace(/\bkmh\b/gi, 'kilómetros por hora')
+      .replace(/\bkph\b/gi, 'kilómetros por hora')
+      .replace(/\bkm\b/g, 'kilómetros')
+      // Engine / vehicle units
+      .replace(/\bRPM\b/g, 'revoluciones')
+      .replace(/\bL\/100\s?km\b/gi, 'litros por cien kilómetros')
+      .replace(/\bL\/h\b/gi, 'litros por hora')
+      // Electrical
+      .replace(/(\d+(?:\.\d+)?)\s*V\b/g, '$1 voltios')
+      // Percentages already fine — browser reads % as "por ciento"
+      // Symbols that TTS reads wrong
+      .replace(/·/g, ' ')
+      .replace(/—/g, ',')
+      .replace(/\.\.\./g, '.')
 
     if (saveResume) lastResponseRef.current = ttsText
     const { apiKey, voiceId } = loadSettings()
@@ -1067,21 +1083,27 @@ export default function Kitt() {
     if (!SR) return
     try {
       const rec = new SR()
-      rec.lang = 'es-ES'; rec.interimResults = false; rec.maxAlternatives = 1
+      rec.lang = 'es-ES'; rec.interimResults = false; rec.maxAlternatives = 3
       rec.onstart  = () => { setListening(true);  listeningRef.current = true }
       rec.onend    = () => {
         setListening(false); listeningRef.current = false
-        if (!pausedRef.current && !speakingRef.current && !thinkingRef.current) setTimeout(() => startListeningRef.current?.(), 200)
+        if (!pausedRef.current && !speakingRef.current && !thinkingRef.current) setTimeout(() => startListeningRef.current?.(), 150)
       }
       rec.onerror  = (e) => {
         setListening(false); listeningRef.current = false
-        const delay = e.error === 'no-speech' ? 80 : 300
+        const delay = e.error === 'no-speech' ? 50 : 250
         if (e.error !== 'aborted' && !pausedRef.current && !thinkingRef.current) setTimeout(() => startListeningRef.current?.(), delay)
       }
       rec.onresult = (e) => {
-        const t = e.results[0][0].transcript
-        if (!t.trim()) return
-        handleInputRef.current?.(t.trim())
+        // Pick the alternative with highest confidence
+        const results = e.results[0]
+        let best = results[0]
+        for (let i = 1; i < results.length; i++) {
+          if (results[i].confidence > best.confidence) best = results[i]
+        }
+        const t = best.transcript?.trim()
+        if (!t || best.confidence < 0.25) return
+        handleInputRef.current?.(t)
       }
       recRef.current = rec; rec.start()
     } catch (_) {}
