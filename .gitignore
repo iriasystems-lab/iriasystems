@@ -8,5 +8,6 @@ dist/
 # Dashboard credentials — never commit
 public/dashboard/config.js
 
-# Generated files with sensitive data (API key in jury note)
+# Generated PDFs — not versioned
 KITT_Concurso_ClubIA.pdf
+KITT_Memoria_Proyecto.pdf
