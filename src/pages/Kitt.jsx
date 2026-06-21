@@ -580,7 +580,8 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
-      className="fixed inset-0 z-[200] flex flex-col overflow-y-auto px-6 py-8"
+      className="fixed inset-0 z-[200] flex flex-col overflow-y-auto px-6"
+      style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'max(24px, env(safe-area-inset-bottom, 0px) + 16px)' }}
       style={{ background: 'rgba(0,0,0,0.97)', fontFamily: "'Courier New',monospace" }}>
       <h2 className="text-lg font-bold tracking-widest text-orange-500 mb-5 text-center">CONFIGURACIÓN</h2>
       <div className="space-y-4">
@@ -1898,7 +1899,7 @@ export default function Kitt() {
 
   // ── Main Dashboard ────────────────────────────────────────────────────────
   return (
-    <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: '#050505', overflow: 'hidden', fontFamily: "'Eurostile',sans-serif", color: '#ddd' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#050505', overflow: 'hidden', fontFamily: "'Eurostile',sans-serif", color: '#ddd' }}>
 
       {/* Scanlines */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 999, background: 'repeating-linear-gradient(0deg,transparent 0px,transparent 2px,rgba(0,0,0,.08) 3px,transparent 4px)' }} />
