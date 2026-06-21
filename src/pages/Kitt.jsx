@@ -32,7 +32,8 @@ async function elevenLabsSpeak(text, apiKey, voiceId, onStart, onEnd, onError, o
     const audio = new Audio(url)
     audio.onended = () => { URL.revokeObjectURL(url); onEnd() }
     audio.onerror = () => { URL.revokeObjectURL(url); onError() }
-    onAudioReady?.(audio)
+    const cancelled = onAudioReady?.(audio, url)  // returns true if superseded — don't play
+    if (cancelled) return
     await audio.play()
   } catch (err) {
     console.warn('ElevenLabs fallback:', err)
@@ -1081,8 +1082,17 @@ export default function Kitt() {
       usingElevenLabsRef.current = true
       elevenLabsSpeak(
         ttsText, apiKey, voiceId, onStart, onEnd,
-        () => { usingElevenLabsRef.current = false; elevenLabsAudioRef.current = null; onStart(); browserSpeak(ttsText, onEnd) },
-        (audio) => { elevenLabsAudioRef.current = audio }
+        () => {
+          // Error fallback to browser TTS — only if this speak() is still current
+          if (speakGenRef.current !== gen) return
+          usingElevenLabsRef.current = false; elevenLabsAudioRef.current = null
+          onStart(); browserSpeak(ttsText, onEnd)
+        },
+        (audio, url) => {
+          // Guard: if a newer speak() was called while this one was fetching, discard
+          if (speakGenRef.current !== gen) { URL.revokeObjectURL(url); return true }
+          elevenLabsAudioRef.current = audio
+        }
       )
     } else {
       onStart(); browserSpeak(ttsText, onEnd)
@@ -1499,8 +1509,12 @@ export default function Kitt() {
     // Route selection while route panel is open
     // 8-second echo-lock: blocks STT from picking up KITT's own route announcement
     if (routesRef.current.length > 0 && Date.now() - routeAnnouncedAtRef.current > 8000) {
-      const choice = extractRouteChoice(text)
-      if (choice !== null) { handleRouteSelectRef.current?.(choice); return }
+      // If the user is asking a question about the routes, pass to Claude instead of auto-selecting
+      const isRouteQuestion = /qu[eé]|cu[aá][nl]|c[oó]mo|por qu[eé]|cu[aá]nto|cu[aá]ndo|d[ií]me|cu[eé]ntame|explica|informaci[oó]n|detalles|tarda|consume|consum|pasa|diferencia|mejor|recomien|\?/i.test(text)
+      if (!isRouteQuestion) {
+        const choice = extractRouteChoice(text)
+        if (choice !== null) { handleRouteSelectRef.current?.(choice); return }
+      }
     }
 
     // ── Weather ───────────────────────────────────────────────────────────
@@ -2076,7 +2090,9 @@ export default function Kitt() {
                   const origin = pos ? `${pos.lat},${pos.lon}` : ''
                   const dest = encodeURIComponent(navRoute.destination)
                   const url = `https://www.google.com/maps/dir/?api=1${origin ? `&origin=${origin}` : ''}&destination=${dest}&travelmode=driving`
-                  window.open(url, '_blank', 'noopener,noreferrer')
+                  const a = document.createElement('a')
+                  a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'
+                  document.body.appendChild(a); a.click(); document.body.removeChild(a)
                 }}>
                 <div>
                   <div style={{ fontSize: 8, color: '#16a34a', letterSpacing: 2, fontWeight: 700 }}>RUTA ACTIVA ↗</div>

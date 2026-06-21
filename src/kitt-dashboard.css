@@ -60,8 +60,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;ba
 .pill{width:58px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Eurostile';font-weight:700;font-size:14px;cursor:pointer;background:linear-gradient(180deg,#221006,#140804);color:var(--amber);border:1px solid #382010;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 2px 4px rgba(0,0,0,.8);transition:transform .05s;-webkit-tap-highlight-color:transparent;}
 .pill.rp{background:linear-gradient(180deg,#280c05,#150503);color:#ff7060;border-color:#381008;}
 .pill:active{transform:translateY(2px);}
-.modcenter{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1 1 0;min-height:0;}
-#voicebars{display:flex;align-items:center;justify-content:center;gap:14px;flex:1 1 0;width:100%;cursor:pointer;border-radius:8px;transition:background .15s;}
+.modcenter{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1 1 0;min-height:0;overflow:hidden;}
+#voicebars{display:flex;align-items:center;justify-content:center;gap:14px;flex:1 1 0;max-height:150px;width:100%;cursor:pointer;border-radius:8px;transition:background .15s;overflow:hidden;}
 #voicebars:hover{background:rgba(255,42,23,.05);}
 .vcol{display:flex;flex-direction:column;gap:4px;}
 .vseg{width:32px;height:12px;border-radius:2px;background:#1e0603;}
