@@ -55,8 +55,8 @@ function loadHistory() {
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 const STORAGE_KEY       = 'kitt_settings'
-const KITT_VOICE_ID     = 's7HQEUgS7KLTKTlXytef'
-const ELEVENLABS_KEY    = 'sk_3d922a083955473b539cbf7dcd4a5f21e5e17c078a54ff3f'
+const KITT_VOICE_ID     = 'um7TeplbzbfDkpPI7bkI'
+const ELEVENLABS_KEY    = '0ebb2deb41e9e0f9a90299ef30c0aa48eaf39513782cb9d0b82b03a394957cf9'
 const SPOTIFY_CLIENT_ID = 'f933e05e45a540fead4d07bf3310d796'
 
 function loadSettings() {
