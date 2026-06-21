@@ -95,6 +95,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;ba
   #rpmArc { height: 95px; }
   .mini .mv { font-size: 15px; }
   .vseg { width: 24px; height: 9px; }
+  #voicebars { flex: 0 0 72px; max-height: 72px; overflow: hidden; }
+  .vcol { gap: 2px; }
 }
 
 /* ── Responsive: portrait (phones held vertically, testing) ── */

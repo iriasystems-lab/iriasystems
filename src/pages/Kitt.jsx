@@ -918,6 +918,8 @@ export default function Kitt() {
   const scannerSourceRef   = useRef(null)
   const bargeInRecRef      = useRef(null)  // barge-in STT recognition instance
   const startBargeInRef    = useRef(null)
+  const routeAnnouncedAtRef = useRef(0)    // timestamp when route list was announced (echo-lock)
+  const speakGenRef         = useRef(0)    // generation counter — invalidates stale onEnd callbacks
 
 
   // Proactive OBD advisor tracking refs
@@ -1016,6 +1018,18 @@ export default function Kitt() {
   }, [])
 
   const speak = useCallback((text, { saveResume = true, onEnd: postEnd = null } = {}) => {
+    // Cancel any previous TTS to prevent double audio
+    const gen = ++speakGenRef.current
+    if (elevenLabsAudioRef.current) {
+      try { elevenLabsAudioRef.current.pause() } catch (_) {}
+      elevenLabsAudioRef.current = null
+      usingElevenLabsRef.current = false
+    }
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel()
+    if (bargeInRecRef.current) {
+      try { bargeInRecRef.current.abort() } catch (_) {}
+      bargeInRecRef.current = null
+    }
     // Sanitize text for TTS — fix abbreviations and artifacts before sending to any engine
     const ttsText = text
       .replace(/K·I·T·T/g, 'Kitt')
@@ -1045,6 +1059,7 @@ export default function Kitt() {
     if (saveResume) lastResponseRef.current = ttsText
     const { apiKey, voiceId } = loadSettings()
     const onEnd = () => {
+      if (speakGenRef.current !== gen) return  // superseded by a newer speak() call — discard
       elevenLabsAudioRef.current = null
       usingElevenLabsRef.current = false
       // Stop barge-in STT if still running
@@ -1182,6 +1197,7 @@ export default function Kitt() {
       })
       msg += `Di "la primera", "la más rápida" o "la más económica" para seleccionar.`
       speak(msg)
+      routeAnnouncedAtRef.current = Date.now()
 
       // Load elevation profiles in background
       labeled.forEach(async (route, i) => {
@@ -1462,6 +1478,7 @@ export default function Kitt() {
             let msg = `Ruta hacia ${st.nombre}: ${labeled[0].durationMin} minutos, ${labeled[0].distKm} kilómetros, ${labeled[0].fuel.liters} litros. `
             if (labeled.length > 1) msg += `Tengo ${labeled.length} alternativas. Di "la primera", "la más rápida" o "la más económica".`
             speak(msg)
+            routeAnnouncedAtRef.current = Date.now()
           } catch { speak(`No pude calcular la ruta. Prueba "llévame a ${st.nombre}".`) }
           return
         }
@@ -1480,7 +1497,8 @@ export default function Kitt() {
     }
 
     // Route selection while route panel is open
-    if (routesRef.current.length > 0) {
+    // 8-second echo-lock: blocks STT from picking up KITT's own route announcement
+    if (routesRef.current.length > 0 && Date.now() - routeAnnouncedAtRef.current > 8000) {
       const choice = extractRouteChoice(text)
       if (choice !== null) { handleRouteSelectRef.current?.(choice); return }
     }
@@ -2052,16 +2070,23 @@ export default function Kitt() {
 
             {/* Active Route bar */}
             {navRoute && (
-              <div className="nav-active-bar">
+              <div className="nav-active-bar" style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  const pos = userPosRef.current
+                  const origin = pos ? `${pos.lat},${pos.lon}` : ''
+                  const dest = encodeURIComponent(navRoute.destination)
+                  const url = `https://www.google.com/maps/dir/?api=1${origin ? `&origin=${origin}` : ''}&destination=${dest}&travelmode=driving`
+                  window.open(url, '_blank', 'noopener,noreferrer')
+                }}>
                 <div>
-                  <div style={{ fontSize: 8, color: '#16a34a', letterSpacing: 2, fontWeight: 700 }}>RUTA ACTIVA</div>
+                  <div style={{ fontSize: 8, color: '#16a34a', letterSpacing: 2, fontWeight: 700 }}>RUTA ACTIVA ↗</div>
                   <div style={{ fontSize: 10, color: '#4ade80', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{navRoute.destination}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#f97316', fontWeight: 700, fontSize: 14 }}>{navRoute.durationMin} min</div>
                   <div style={{ fontSize: 9, color: '#555' }}>{navRoute.distanceKm} km</div>
                 </div>
-                <button onClick={() => setNavRoute(null)} style={{ background: 'none', border: 'none', color: '#444', fontSize: 18, cursor: 'pointer', marginLeft: 8, lineHeight: 1 }}>✕</button>
+                <button onClick={(e) => { e.stopPropagation(); setNavRoute(null) }} style={{ background: 'none', border: 'none', color: '#444', fontSize: 18, cursor: 'pointer', marginLeft: 8, lineHeight: 1 }}>✕</button>
               </div>
             )}
 
