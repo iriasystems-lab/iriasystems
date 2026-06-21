@@ -928,6 +928,15 @@ export default function Kitt() {
   const speedHistRef    = useRef([])
   const lastSpokenRef   = useRef({})
 
+  // Force landscape orientation (PWA / installed app)
+  useEffect(() => {
+    const lock = () => {
+      try { screen.orientation?.lock?.('landscape').catch(() => {}) } catch (_) {}
+    }
+    lock()
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) lock() })
+  }, [])
+
   // Pre-load voices on iOS (they load asynchronously)
   useEffect(() => {
     if (typeof speechSynthesis === 'undefined') return

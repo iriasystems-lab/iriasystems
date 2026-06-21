@@ -6,7 +6,7 @@
   "display": "fullscreen",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
-  "orientation": "portrait",
+  "orientation": "landscape",
   "icons": [
     {
       "src": "/kitt-agent-logo.png",
