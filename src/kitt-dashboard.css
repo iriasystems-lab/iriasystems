@@ -74,3 +74,71 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;ba
 .nav-active-bar{display:flex;justify-content:space-between;align-items:center;background:rgba(0,20,0,0.5);border:1px solid rgba(34,197,94,0.3);border-radius:6px;padding:4px 10px;margin-bottom:6px;flex:0 0 auto;}
 .now-playing-bar{display:flex;align-items:center;gap:8px;background:rgba(0,10,0,0.5);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:4px 10px;margin-bottom:6px;flex:0 0 auto;}
 .trivia-bar{background:rgba(10,8,0,0.9);border-radius:6px;padding:4px 10px;margin-bottom:6px;flex:0 0 auto;}
+
+/* ── Responsive: landscape narrow (phones in landscape, small CarPlay) ── */
+@media (orientation: landscape) and (max-height: 480px) {
+  #topbar { flex: 0 0 26px; }
+  #clock { font-size: 16px; }
+  .kr-title { font-size: 16px; letter-spacing: 4px; margin-bottom: 4px; }
+  .pill { width: 46px; height: 34px; font-size: 11px; }
+  .mode { height: 34px; font-size: 11px; }
+  .vel-body { height: 90px; }
+  .vel-seg { font-size: 52px; }
+  #rpm-panel { flex: 0 0 100px; }
+  #rpmArc { height: 95px; }
+  .mini .mv { font-size: 15px; }
+  .vseg { width: 24px; height: 9px; }
+}
+
+/* ── Responsive: portrait (phones held vertically, testing) ── */
+@media (orientation: portrait) {
+  #body { flex-direction: column; overflow-y: auto; }
+
+  #col-left {
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  #vel-panel {
+    flex: 1 1 45%;
+    min-width: 140px;
+  }
+
+  #rpm-panel {
+    flex: 1 1 45%;
+    min-width: 140px;
+    flex-basis: auto;
+  }
+
+  #gauges-panel {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+
+  .vel-body { height: 80px; }
+  .vel-seg { font-size: 48px; }
+  #velBars { width: 60px; }
+
+  #col-center { flex: 0 0 auto; min-height: 320px; }
+
+  #mod-panel { min-height: 300px; }
+
+  .kr-title { font-size: 16px; letter-spacing: 5px; }
+
+  .pill { width: 52px; height: 38px; font-size: 12px; }
+
+  .vseg { width: 28px; height: 10px; }
+
+  .modes-row { gap: 4px; }
+  .mode { height: 38px; font-size: 11px; letter-spacing: 0; }
+
+  .obd-scenario { flex-wrap: wrap; gap: 2px; }
+}
+
+/* ── Fluid font sizes using clamp for all screen sizes ── */
+.kr-title { font-size: clamp(14px, 2.5vw, 22px); }
+.vel-seg { font-size: clamp(40px, 8vw, 72px); }
+#clock { font-size: clamp(14px, 2vw, 20px); }
+.mini .mv { font-size: clamp(14px, 2vw, 20px); }

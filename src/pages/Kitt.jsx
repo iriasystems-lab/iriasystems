@@ -76,13 +76,12 @@ function getSpotifyToken() {
 }
 
 // ─── OBD Scenarios ────────────────────────────────────────────────────────────
-// BMW 218i Active Tourer 2015 — valores reales por escenario
 const OBD_SCENARIOS = [
-  { id: 'parked',  label: 'APARCADO',  base: { speed: 0,   rpm: 0,    fuel: 68.0, temp: 22,  battery: 12.4, gear: 'P', throttle: 0,  load: 0  } },
-  { id: 'idle',    label: 'RALENTÍ',   base: { speed: 0,   rpm: 720,  fuel: 67.8, temp: 89,  battery: 13.9, gear: 'N', throttle: 0,  load: 15 } },
-  { id: 'city',    label: 'CIUDAD',    base: { speed: 38,  rpm: 1900, fuel: 65.5, temp: 91,  battery: 14.1, gear: '2', throttle: 18, load: 38 } },
-  { id: 'road',    label: 'CARRETERA', base: { speed: 88,  rpm: 2500, fuel: 62.0, temp: 92,  battery: 14.2, gear: '4', throttle: 20, load: 42 } },
-  { id: 'highway', label: 'AUTOPISTA', base: { speed: 118, rpm: 2900, fuel: 58.0, temp: 93,  battery: 14.2, gear: '5', throttle: 22, load: 46 } },
+  { id: 'parked',  label: 'PARADO',    base: { speed: 0,   rpm: 0,    fuel: 68, temp: 22, battery: 12.4, gear: 'P', throttle: 0,  load: 0  } },
+  { id: 'idle',    label: 'RALENTÍ',   base: { speed: 0,   rpm: 750,  fuel: 68, temp: 88, battery: 13.9, gear: 'N', throttle: 0,  load: 12 } },
+  { id: 'city',    label: 'CIUDAD',    base: { speed: 40,  rpm: 1800, fuel: 65, temp: 92, battery: 14.1, gear: '2', throttle: 18, load: 35 } },
+  { id: 'road',    label: 'CARRETERA', base: { speed: 90,  rpm: 2400, fuel: 61, temp: 94, battery: 14.2, gear: '4', throttle: 20, load: 40 } },
+  { id: 'highway', label: 'AUTOPISTA', base: { speed: 120, rpm: 2800, fuel: 57, temp: 95, battery: 14.2, gear: '5', throttle: 22, load: 44 } },
 ]
 
 function useOBDData(scenarioId) {
@@ -191,27 +190,16 @@ function Equalizer({ active }) {
   )
 }
 
-// ─── Car Configuration — BMW 218i Active Tourer 2015 ─────────────────────────
+// ─── Car Configuration — Volkswagen Golf ─────────────────────────────────────
 const CAR = {
-  marca:           'BMW',
-  modelo:          '218i Active Tourer',
-  año:             2015,
-  motor:           '1.5L Turbo 3 cilindros (B38)',
-  cv:              136,
-  par:             220,       // Nm
-  combustible:     'gasolina 95',
-  deposito:        51,        // litros totales
-  depositoUtil:    49,        // litros utilizables (2L de reserva)
-  consumoMedio:    7.2,       // L/100km real estimado
-  consumoCiudad:   8.8,       // L/100km urbano
-  consumoCarretera:6.0,       // L/100km carretera
-  consumoAutopista:5.5,       // L/100km autopista
-  tempOptMin:      88,        // °C apertura termostato
-  tempOptMax:      95,        // °C máximo normal
-  co2:             109,       // g/km
-  vmax:            210,       // km/h
-  rpmIdle:         720,
-  matricula:       null,      // el conductor puede añadirla
+  marca:        'Volkswagen',
+  modelo:       'Golf',
+  combustible:  'gasolina',
+  deposito:     50,
+  depositoUtil: 48,
+  consumoMedio: 6.5,
+  tempOptMin:   88,
+  tempOptMax:   105,
 }
 
 function calcRange(fuelPct, consumo = CAR.consumoMedio) {
@@ -226,14 +214,6 @@ function calcLitrosRestantes(fuelPct) {
 function calcLitrosFaltantes(fuelPct) {
   return (((100 - fuelPct) / 100) * CAR.depositoUtil).toFixed(1)
 }
-
-function consumoActual(speed) {
-  if (speed < 5)  return CAR.consumoCiudad
-  if (speed < 80) return CAR.consumoCiudad
-  if (speed < 110) return CAR.consumoCarretera
-  return CAR.consumoAutopista
-}
-
 
 function buildGreeting() {
   const hour = parseInt(
@@ -263,9 +243,8 @@ function getKittResponse(input, obd, isSimulated) {
   const q = input.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   const speed = obd.speed, rpm = Math.round(obd.rpm), fuel = Math.round(obd.fuel)
   const temp = Math.round(obd.temp), bat = obd.battery, gear = obd.gear
-  const sim = isSimulated ? ' (estimado, sin OBD real)' : ''
+  const sim = isSimulated ? ' (simulado, sin OBD real)' : ''
 
-  // ── DTC code lookup — must be first ──────────────────────────────────────
   const dtcMatch = input.match(/\b([PCUBpcub][0-9]{4})\b/)
   if (dtcMatch) {
     const code = dtcMatch[1].toUpperCase()
@@ -275,164 +254,70 @@ function getKittResponse(input, obd, isSimulated) {
       const conducir = dtc.puede_conducir ? 'Puedes circular con precaución.' : 'Para el motor en cuanto sea seguro.'
       return `${nivel}: ${code} — ${dtc.nombre}. ${dtc.accion} ${conducir}`
     }
-    return `El código ${code} no está en mi base de datos del B38. Lleva el coche al taller para diagnóstico.`
+    return `El código ${code} no está en mi base de datos. Lleva el coche al taller para diagnóstico.`
   }
 
-  // ── Preguntas técnicas sobre el B38 ──────────────────────────────────────
-  if (/cadena|distribucion|tensor/.test(q))
-    return `La cadena de distribución es el punto débil del B38. A 160.000 km es prioritario revisar el tensor. Los códigos P0016 y P0017 son la señal de alarma.`
-  if (/bujia|bobina|encendido|chispa/.test(q))
-    return `Las bujías del B38 duran 60.000 km. Con 160.000 km llevan ya más de las recomendadas — si notan tirones o arranques difíciles, es el primer sitio a revisar.`
-  if (/pcv|carter|ventilacion/.test(q))
-    return `La válvula PCV de la tapa de balancines es otro punto débil del B38. Ralentí inestable o mezcla pobre (P052E, P0171) suele ser ella. No es cara de cambiar.`
-  if (/vanos|arbol de levas|fasaje|fases/.test(q))
-    return `El VANOS del B38 controla el fasaje de levas. Los solenoides se ensucian con aceite degradado — síntoma: P0011 o P0014. Limpieza o sustitución del solenoide, sin dramatismos.`
-  if (/turbo|sobrealimentacion|wastegate|intercooler/.test(q))
-    return `El turbocompresor del B38 a 160.000 km puede perder algo de presión. P0299 indica subpresión, P0234 sobrepresión. Revisa manguitos del intercooler antes de tocar el turbo.`
-  if (/hpfp|bomba (de )?combustible|bomba alta presion|presion combustible/.test(q))
-    return `La bomba de alta presión HPFP del B38 puede desgastarse a partir de 120.000 km. El código P0087 (presión baja) es el indicador. Se nota como tirones en aceleración fuerte.`
-  if (/termostato|temperatura (de )?trabajo|calentamiento/.test(q))
-    return `El termostato del B38 es map-controlled: abre a 88°C en conducción normal y puede quedarse bloqueado abierto, lo que genera P0128 y sube el consumo. Síntoma: el coche tarda mucho en llegar a temperatura.`
+  if (/^(hola|buenas|buenos|ey|oye|hey|que hay|hola kitt)/.test(q))
+    return `Hola, Cristian. Kitt activo. ¿Qué necesitas?`
 
-  // ── Saludos ──────────────────────────────────────────────────────────────
-  if (/^(hola|buenas|buenos|ey|oye|hey|que hay|hola kitt|ey kitt)/.test(q))
-    return `Hola, Cristian. KITT activo. ¿Qué necesitas?`
+  if (/como estas|como va todo|todo bien|que tal|sistemas|operativo/.test(q))
+    return `Todo correcto. Motor a ${temp}°C, combustible ${fuel}%, batería ${bat}V${sim}.`
 
-  // ── Estado general ───────────────────────────────────────────────────────
-  if (/como estas|como va todo|todo bien|que tal|sistemas|operativo|funcionas/.test(q))
-    return `Todo correcto, Cristian. Motor a ${temp}°C, combustible ${fuel}%, batería ${bat}V${sim}.`
-
-  // ── Velocidad / movimiento ───────────────────────────────────────────────
-  if (/velocidad|a cuanto|cuanto vamos|cuanto voy|a que velocidad|cuantos km|circulando|en marcha|nos movemos|me muevo/.test(q)) {
-    if (isSimulated) {
-      return speed < 3
-        ? 'El GPS dice que estás parado. Sin OBD no tengo la velocidad real del vehículo.'
-        : `Según el GPS vas a unos ${speed} km/h. Para datos precisos conecta el OBD.`
-    }
-    return speed < 3
-      ? 'Estás parado, motor al ralentí.'
-      : `Circulando a ${speed} km/h, marcha ${gear}.${speed > 120 ? ' Atención: por encima del límite, Cristian.' : ''}`
+  if (/velocidad|a cuanto|cuanto vamos|cuanto voy|cuantos km/.test(q)) {
+    if (isSimulated) return speed < 3 ? 'Estás parado. Sin OBD no tengo la velocidad real.' : `Según GPS vas a unos ${speed} km/h. Conecta el OBD para datos precisos.`
+    return speed < 3 ? 'Estás parado, motor al ralentí.' : `Circulando a ${speed} km/h, marcha ${gear}.${speed > 120 ? ' Atención: velocidad elevada.' : ''}`
   }
 
-  // ── Estado parado / aparcado ─────────────────────────────────────────────
-  if (/parado|aparcado|detenido|sin moverse|no nos movemos|no me muevo|aparque|estamos aqui/.test(q))
-    return speed < 3
-      ? `Sí, estáis parados. Motor ${rpm > 100 ? 'al ralentí a ' + rpm + ' RPM' : 'apagado'}.`
-      : `Según los datos${isSimulated ? ' de simulación' : ''}, el coche va a ${speed} km/h.`
+  if (/rpm|revoluciones/.test(q))
+    return `Motor a ${rpm} RPM${sim}. ${rpm > 4000 ? 'Régimen alto, sube marcha.' : rpm < 500 && speed < 2 ? 'Motor apagado.' : 'Régimen correcto.'}`
 
-  // ── RPM ──────────────────────────────────────────────────────────────────
-  if (/rpm|revoluciones|vueltas del motor/.test(q))
-    return `Motor a ${rpm} RPM${sim}. ${rpm > 4000 ? 'Régimen alto; sube marcha para ahorrar.' : rpm < 500 && speed < 2 ? 'Motor apagado o casi.' : 'Régimen correcto.'}`
-
-  // ── Combustible / autonomía / litros ─────────────────────────────────────
-  if (/combustible|gasolina|deposito|autonomia|cuanto queda|quedan km|litros|cuanta gasolina|cuanto me queda|lleno|llena/.test(q)) {
+  if (/combustible|gasolina|deposito|autonomia|cuanto queda|litros/.test(q)) {
     const litros = calcLitrosRestantes(fuel)
     const km = calcRange(fuel)
-    const falta = calcLitrosFaltantes(fuel)
-    if (fuel < 15)
-      return `Cristian, combustible bajo: ${litros} litros, unos ${km} km de autonomía. Recomiendo repostar pronto.`
-    return `Tienes ${litros} litros en el depósito, autonomía estimada de ${km} km a ${CAR.consumoMedio} L/100. ${fuel < 40 ? `Te faltan unos ${falta} litros para llenar.` : 'Depósito en buen nivel.'}`
+    if (fuel < 15) return `Combustible bajo: ${litros} litros, unos ${km} km. Recomiendo repostar.`
+    return `Tienes ${litros} litros, autonomía estimada ${km} km.`
   }
 
-  // ── Cuánto cuesta llenar ─────────────────────────────────────────────────
-  if (/cuesta llenar|cuanto vale llenar|precio gasolina|cuanto gasto|coste de llenar/.test(q)) {
-    const falta = parseFloat(calcLitrosFaltantes(fuel))
-    const precio95 = 1.68
-    return `Para llenar el depósito necesitas ${falta.toFixed(1)} litros de gasolina 95. A unos ${precio95}€ el litro, serían unos ${(falta * precio95).toFixed(2)}€, Cristian.`
-  }
+  if (/temperatura|calor del motor|motor frio|motor caliente|sobrecalent/.test(q))
+    return `Motor a ${temp}°C${sim}. ${temp > 105 ? 'Temperatura elevada, reduce carga.' : temp < 88 ? 'Motor calentando.' : 'Temperatura correcta.'}`
 
-  // ── Temperatura motor ────────────────────────────────────────────────────
-  if (/temperatura|calor del motor|frio|motor frio|motor caliente|sobrecalent|termostato/.test(q))
-    return `Motor a ${temp}°C${sim}. ${temp > 105 ? 'Temperatura algo elevada, Cristian; reduce la carga.' : temp < CAR.tempOptMin ? 'Motor calentando, el termostato abre a los 88°C.' : 'Temperatura perfecta para el B38.'}`
+  if (/bateria|voltaje|alternador/.test(q))
+    return `Batería a ${bat}V${sim}. ${bat < 12.4 && speed < 3 ? 'Voltaje bajo en reposo.' : 'Sistema eléctrico correcto.'}`
 
-  // ── Batería / voltaje ────────────────────────────────────────────────────
-  if (/bateria|voltaje|electrico|alternador|tension electrica/.test(q))
-    return `Batería a ${bat}V${sim}. ${bat < 12.4 && speed < 3 ? 'Voltaje bajo en reposo; con motor en marcha debería estar entre 13.8 y 14.4V.' : bat > 14.7 ? 'El alternador recupera energía en retención; es normal en el F45.' : 'Sistema eléctrico correcto.'}`
+  if (/marcha|cambio/.test(q))
+    return `Marcha ${gear}, ${speed} km/h, ${rpm} RPM${sim}.`
 
-  // ── Marcha / cambio ──────────────────────────────────────────────────────
-  if (/\b(marcha|cambio|en que marcha|que marcha|que velocidad llevo metida)\b/.test(q))
-    return `Marcha ${gear}, ${speed} km/h, ${rpm} RPM${sim}. Consumo estimado: ${consumoActual(speed)} L/100.`
+  if (/consumo|ahorrar|eficiencia/.test(q))
+    return speed > 120 ? 'Baja a 110 km/h para ahorrar combustible.' : rpm > 3000 ? 'Sube marcha para reducir RPM y consumo.' : 'Conducción eficiente.'
 
-  // ── Consumo / eficiencia ─────────────────────────────────────────────────
-  if (/consumo|ahorrar|optimizar|eficiencia|economico|gastar menos|ahorro de combustible/.test(q)) {
-    const tip = speed > 120 ? 'Baja a 110 km/h en autopista; ahorras hasta 1,5 L/100.' : rpm > 3000 ? 'Sube marcha para reducir RPM y consumo.' : speed < 3 ? 'Al ralentí gastas medio litro/hora. Si la espera es larga, apaga el motor.' : 'Conducción eficiente. Mantén velocidad constante.'
-    return `Consumo estimado: ${consumoActual(speed)} L/100 km. ${tip}`
-  }
+  if (/averia|fallo|error|diagnostico|testigo|check engine|dtc/.test(q))
+    return `Diagnóstico: ${obd.dtc?.length ? `${obd.dtc.length} código(s) activos. Dime el código y te explico.` : 'Sin códigos de avería detectados.'}`
 
-  // ── OFCO / corte de inyección ────────────────────────────────────────────
-  if (/ofco|corte de inyeccion|consumo cero|inyeccion cortada|frenar gratis|retener/.test(q))
-    return `El OFCO es el corte de inyección en retención: si levantas el pie con marcha metida, por encima de 1200 RPM y 25 km/h, el motor no consume nada. Ideal en bajadas y al acercarte a semáforos.`
+  if (/gasolinera|repostar|gasolina barata/.test(q))
+    return `Di "busca gasolinera barata" y te encuentro las más baratas cerca.`
 
-  // ── Diagnóstico / averías ────────────────────────────────────────────────
-  if (/averia|fallo|error|problema|diagnostico|testigo|luz|check engine|dtc|codigo de error/.test(q))
-    return `Diagnóstico: ${obd.dtc?.length ? `${obd.dtc.length} código(s) activos. Dime el código y te explico qué significa.` : 'Sin códigos de avería detectados. Todo correcto, Cristian.'}`
+  if (/donde estamos|ubicacion|donde estoy|mapa|gps/.test(q))
+    return `Para navegar di "llévame a" seguido del destino.`
 
-  // ── Datos del coche ──────────────────────────────────────────────────────
-  if (/que coche|que motor|ficha|especificaciones|datos del coche|potencia|caballos|modelo|transmision|caja de cambios/.test(q))
-    return `BMW 218i Active Tourer 2015. Motor B38A15A, 1.5L turbo 3 cilindros, 136 CV, 220 Nm. Caja Aisin automática 6 velocidades. Depósito 51 L. Gasolina 95. CO2 109 g/km, etiqueta C.`
+  if (/musica|cancion|spotify|reproduce/.test(q))
+    return `Di "pon música de" con el artista, o "siguiente", "pausa", "sube el volumen".`
 
-  // ── Mantenimiento / aceite ───────────────────────────────────────────────
-  if (/aceite|mantenimiento|revision|filtro|cuando toca|service|ibs/.test(q))
-    return `El B38 usa 5W-30 longlife, 4,25 litros. Con 160.000 km y revisión reciente, lo más urgente son las bujías (cambiar cada 60.000 km) y vigilar la cadena de distribución, punto débil del B38. ¿Algo en concreto?`
+  if (/tiempo|lluvia|sol|clima/.test(q))
+    return `Di "qué tiempo hace" para el tiempo por GPS, o "tiempo en" seguido de la ciudad.`
 
-  // ── Gasolinera ───────────────────────────────────────────────────────────
-  if (/gasolinera|repostar|gasolina barata|donde reposto|carburante barato/.test(q))
-    return `Di "busca gasolinera barata" y te encuentro las más baratas cerca con precios en tiempo real del Ministerio.`
-
-  // ── Navegación ───────────────────────────────────────────────────────────
-  if (/donde estamos|ubicacion|donde estoy|mapa|gps|donde me encuentro/.test(q))
-    return `Para navegar dime "llévame a" seguido del destino, Cristian. Calculo ruta con gasto de combustible real.`
-
-  // ── Música ───────────────────────────────────────────────────────────────
-  if (/musica|cancion|spotify|reproduce|escuchar|artista|pon algo/.test(q))
-    return `Di "pon música de" con el artista, o "siguiente", "pausa", "sube el volumen". Conecta Spotify en ajustes.`
-
-  // ── Tiempo / clima ───────────────────────────────────────────────────────
-  if (/tiempo|lluvia|sol|clima|nubes|viento|temperatura exterior/.test(q))
-    return `Di "qué tiempo hace" para el tiempo por GPS, o "tiempo en Madrid" para cualquier ciudad. Tengo datos en tiempo real.`
-
-  // ── Gracias / ok ─────────────────────────────────────────────────────────
-  if (/gracias|perfecto|genial|bien hecho|muy bien|ok gracias|de acuerdo/.test(q))
+  if (/gracias|perfecto|genial|bien hecho/.test(q))
     return `A tu servicio, Cristian.`
 
-  // ── Presentación ─────────────────────────────────────────────────────────
-  if (/quien eres|que eres|presentate|como te llamas/.test(q))
-    return `Soy Kitt, el agente de inteligencia artificial de conducción integrado en el BMW 218i Active Tourer de Cristian. Monitorizo el vehículo en tiempo real, analizo la conducción y te asisto con voz. ¿Qué necesitas?`
+  if (/quien eres|que eres|presentate/.test(q))
+    return `Soy Kitt, agente de inteligencia artificial integrado en tu vehículo. Monitorizo el motor, la ruta y te asisto con voz. ¿Qué necesitas?`
 
-  // ── Capacidades — lista general ───────────────────────────────────────────
-  if (/que puedes|que sabes|funciones|capacidades|que haces|para que sirves|que eres capaz|que ofreces|ayudarme|listame|que incluye|que controla|que hace kitt|que puede kitt/.test(q))
-    return `Mis funciones: 1. Motor en tiempo real — velocidad, RPM, temperatura, voltaje, carga. 2. Diagnóstico DTC — fallos con explicación y gravedad. 3. Eficiencia — consumo, autonomía y detección del OFCO a consumo cero. 4. Gasolineras baratas — precios reales del Ministerio cerca de tu GPS. 5. Rutas — hasta 3 alternativas con tiempo, distancia y litros de combustible. 6. Spotify — música por voz. 7. Consejos proactivos en tiempo real. Di "cuéntame más sobre" y el bloque que quieras detallar.`
+  if (/que puedes|que sabes|funciones|capacidades/.test(q))
+    return `Mis funciones: motor en tiempo real, diagnóstico DTC, autonomía y consumo, gasolineras baratas, rutas con gasto de combustible, control Spotify y tiempo meteorológico.`
 
-  // ── Capacidades — detalle motor/OBD ──────────────────────────────────────
-  if (/mas sobre (motor|obd)|detalle (motor|obd)|que monitorizo|que datos tiene|como funciona obd/.test(q))
-    return `Del motor monitorizo: velocidad, RPM, temperatura del refrigerante, posición del acelerador, carga del motor y voltaje de batería. Conecto vía WiFi al adaptador OBD-II. Detecto el OFCO y activo avisos de temperatura alta o batería baja. Sin OBD, el GPS me da la velocidad aproximada.`
+  if (/chiste|broma|gracioso/.test(q))
+    return `Cristian, proceso millones de datos por segundo. Y aún así no entiendo cómo hay gente que frena después de la curva.`
 
-  // ── Capacidades — detalle diagnóstico DTC ────────────────────────────────
-  if (/mas sobre (diagnostico|averias|dtc|codigos|fallos)|detalle (diagnostico|fallo)/.test(q))
-    return `Tengo los 20 fallos más frecuentes del B38A15A: distribución (P0016, P0017), VANOS, encendido, turbo, mezcla, catalizador, PCV, cigüeñal y comunicación CAN. Para cada código te digo el nombre, gravedad, si puedes seguir conduciendo y qué hacer. Di el código directamente y te lo explico.`
-
-  // ── Capacidades — detalle gasolineras ────────────────────────────────────
-  if (/mas sobre gasolinera|como busca gasolinera|detalle gasolinera/.test(q))
-    return `Uso la API gratuita del Ministerio, que actualiza precios cada hora. Con tu GPS determino la provincia, descargo todas las gasolineras y las ordeno por precio de gasolina 95 dentro de 15 km. Di "busca gasolinera barata" cuando quieras.`
-
-  // ── Capacidades — detalle rutas ───────────────────────────────────────────
-  if (/mas sobre ruta|como calcula ruta|detalle navegacion|detalle ruta/.test(q))
-    return `Calculo hasta 3 rutas alternativas. Para cada una te doy distancia, duración, litros estimados según el consumo real del B38 a esa velocidad media, coste en euros y desnivel. Di "llévame a" seguido del destino.`
-
-  // ── Capacidades — detalle OFCO/eficiencia ────────────────────────────────
-  if (/mas sobre ofco|detalle ofco|mas sobre eficiencia|que es el ofco|como funciona ofco/.test(q))
-    return `El OFCO es el corte de inyección en retención: pie suelto, marcha metida, más de 1200 RPM y 25 km/h — consumo cero. Te aviso cuando está activo, cuántos segundos llevas y los km a coste cero. También te aviso de temperatura alta, ralentí largo o aceleración ineficiente.`
-
-  // ── Capacidades — detalle Spotify ─────────────────────────────────────────
-  if (/mas sobre spotify|detalle musica|como controlo spotify|control de musica/.test(q))
-    return `Control de Spotify por voz: "pon música de" con el artista, "ponme" con la canción, "siguiente", "anterior", "pausa", "reanuda", "sube el volumen" o "baja el volumen". Necesita Spotify Premium y conectar la cuenta en ajustes.`
-
-  // ── Chiste ───────────────────────────────────────────────────────────────
-  if (/chiste|broma|gracioso|hazme reir|cuéntame algo/.test(q))
-    return `Cristian, proceso millones de datos por segundo. Y aun así no entiendo cómo hay gente que frena después de la curva.`
-
-  // ── Default honesto ───────────────────────────────────────────────────────
-  return `Para conversar libremente conmigo, añade tu clave de Claude en ajustes. Sin ella solo proceso comandos concretos: gasolineras, navegación, tiempo, Spotify y datos del motor.`
+  return `Para conversar libremente, añade tu clave de Claude en ajustes. Sin ella proceso comandos concretos: gasolineras, navegación, tiempo, Spotify y datos del motor.`
 }
 
 // ─── Trivia — fetch a question from Claude ────────────────────────────────────
@@ -904,10 +789,10 @@ function SegBar({ frac, scheme }) {
 }
 
 // ─── VoiceModulator ───────────────────────────────────────────────────────────
-function VoiceModulator({ speaking, thinking, onClick }) {
+function VoiceModulator({ speaking, thinking, listening, onClick }) {
   const containerRef = useRef(null)
-  const stateRef = useRef({ speaking, thinking })
-  useEffect(() => { stateRef.current = { speaking, thinking } }, [speaking, thinking])
+  const stateRef = useRef({ speaking, thinking, listening })
+  useEffect(() => { stateRef.current = { speaking, thinking, listening } }, [speaking, thinking, listening])
 
   useEffect(() => {
     const container = containerRef.current
@@ -931,11 +816,14 @@ function VoiceModulator({ speaking, thinking, onClick }) {
     let vt = 0, frameId
     const animate = () => {
       vt += 0.05
-      const { speaking, thinking } = stateRef.current
+      const { speaking, thinking, listening } = stateRef.current
       const osc = (Math.sin(vt * 2.4) + 1) / 2
-      const reach = speaking ? (0.85 + 0.15 * osc) : thinking ? (0.4 + 0.1 * osc) : (0.15 + 0.08 * osc)
+      const reach = speaking   ? (0.85 + 0.15 * osc)
+                  : thinking   ? (0.4  + 0.1  * osc)
+                  : listening  ? 0.05
+                  :              (0.15 + 0.08 * osc)
       cols.forEach((segs, c) => {
-        const ext = Math.min(1, reach * VW[c] + (speaking ? Math.random() * 0.09 : Math.random() * 0.03))
+        const ext = Math.min(1, reach * VW[c] + (speaking ? Math.random() * 0.09 : listening ? 0 : Math.random() * 0.03))
         const lh = Math.round(ext * VCEN)
         segs.forEach((seg, i) => {
           const d = Math.abs(i - VCEN)
@@ -1025,6 +913,8 @@ export default function Kitt() {
   const audioCtxRef        = useRef(null)
   const introMusicRef      = useRef(null)
   const introAudioBufRef   = useRef(null)
+  const scannerBufRef      = useRef(null)
+  const scannerSourceRef   = useRef(null)
   const bargeInRecRef      = useRef(null)  // barge-in STT recognition instance
   const startBargeInRef    = useRef(null)
 
@@ -1049,6 +939,14 @@ export default function Kitt() {
     fetch('/intro-corta-coche-fantastico.MP3')
       .then(r => r.ok ? r.arrayBuffer() : null)
       .then(buf => { if (buf) introAudioBufRef.current = buf })
+      .catch(() => {})
+  }, [])
+
+  // Preload ambient scanner loop
+  useEffect(() => {
+    fetch('/scanner-kitt.mp4')
+      .then(r => r.ok ? r.arrayBuffer() : null)
+      .then(buf => { if (buf) scannerBufRef.current = buf })
       .catch(() => {})
   }, [])
 
@@ -1739,6 +1637,27 @@ export default function Kitt() {
     } else {
       speak(greeting)
     }
+
+    // Start ambient scanner loop
+    setTimeout(() => {
+      try {
+        const ctx = audioCtxRef.current
+        const buf = scannerBufRef.current
+        if (ctx && buf && !scannerSourceRef.current) {
+          ctx.decodeAudioData(buf.slice(0), decoded => {
+            const src  = ctx.createBufferSource()
+            src.buffer = decoded
+            src.loop   = true
+            const gain = ctx.createGain()
+            gain.gain.value = 0.12
+            src.connect(gain)
+            gain.connect(ctx.destination)
+            src.start(0)
+            scannerSourceRef.current = { src, gain }
+          }, () => {})
+        }
+      } catch (_) {}
+    }, 800)
   }, [speak])
 
   // ── OBD WiFi ───────────────────────────────────────────────────────────────
@@ -1928,7 +1847,7 @@ export default function Kitt() {
     const obdData = obdRef.current
     switch (pill) {
       case 'AIR': speak('Climatización activada.'); break
-      case 'OIL': speak(`Aceite del motor en nivel correcto. Motor a ${Math.round(obdData.temp)} grados, régimen ${Math.round(obdData.rpm)} RPM. Sin alertas en el B38.`); break
+      case 'OIL': speak(`Aceite del motor en nivel correcto. Motor a ${Math.round(obdData.temp)} grados, régimen ${Math.round(obdData.rpm)} RPM. Sin alertas en el vehículo.`); break
       case 'P1':  togglePause(); break
       case 'P2':  setShowSettings(true); break
       case 'S1':  speak('Procesando ruta al destino principal.'); break
@@ -2155,7 +2074,7 @@ export default function Kitt() {
 
               {/* Voice modulator center */}
               <div className="modcenter">
-                <VoiceModulator speaking={speaking} thinking={thinking} onClick={handleVoiceTap} />
+                <VoiceModulator speaking={speaking} thinking={thinking} listening={listening} onClick={handleVoiceTap} />
                 <div id="kittStatus">{kittStatusText}</div>
                 <div id="kittHint">{kittHintText}</div>
               </div>
