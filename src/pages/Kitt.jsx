@@ -1290,6 +1290,10 @@ export default function Kitt() {
         try { bargeInRecRef.current.abort() } catch (_) {}
         bargeInRecRef.current = null
       }
+      // Resume scanner ambience
+      if (scannerSourceRef.current?.gain && audioCtxRef.current) {
+        scannerSourceRef.current.gain.gain.setTargetAtTime(0.12, audioCtxRef.current.currentTime, 0.4)
+      }
       setSpeaking(false); speakingRef.current = false
       postEnd?.()  // trivia timer, chained speech, etc.
       // 1.5s delay — lets speaker audio fully die out before mic opens
@@ -1298,6 +1302,10 @@ export default function Kitt() {
     const onStart = () => {
       setSpeaking(true); speakingRef.current = true
       speakStartTimeRef.current = Date.now()
+      // Mute scanner while Kitt speaks
+      if (scannerSourceRef.current?.gain && audioCtxRef.current) {
+        scannerSourceRef.current.gain.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.1)
+      }
       // Barge-in disabled — mic picks up speaker audio and causes self-loop
     }
     if (apiKey && voiceId) {
