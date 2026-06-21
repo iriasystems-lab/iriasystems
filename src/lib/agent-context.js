@@ -21,9 +21,9 @@ async function fetchWeatherCtx(lat, lon) {
     const daily = d.daily
     const DIAS = ['Hoy','Mañana','Pasado']
     const fc = (daily?.temperature_2m_max || []).slice(0, 3).map((max, i) =>
-      `${DIAS[i]} ${Math.round(daily.temperature_2m_min[i])}-${Math.round(max)}°C ${WMO[daily.weathercode[i]] || ''}`
+      `${DIAS[i]} ${Math.round(daily.temperature_2m_min[i])}-${Math.round(max)} grados ${WMO[daily.weathercode[i]] || ''}`
     ).join(' | ')
-    return `TIEMPO (Tiempo.es): ${Math.round(cur.temperature_2m)}°C ${desc}, viento ${Math.round(cur.windspeed_10m)} km/h.${fc ? ` Previsión: ${fc}.` : ''}`
+    return `TIEMPO (Tiempo.es): ${Math.round(cur.temperature_2m)} grados ${desc}, viento ${Math.round(cur.windspeed_10m)} km/h.${fc ? ` Previsión: ${fc}.` : ''}`
   } catch { return null }
 }
 

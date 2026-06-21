@@ -261,7 +261,7 @@ function getKittResponse(input, obd, isSimulated) {
     return `Hola, Cristian. Kitt activo. ¿Qué necesitas?`
 
   if (/como estas|como va todo|todo bien|que tal|sistemas|operativo/.test(q))
-    return `Todo correcto. Motor a ${temp}°C, combustible ${fuel}%, batería ${bat}V${sim}.`
+    return `Todo correcto. Motor a ${temp} grados, combustible ${fuel}%, batería ${bat} voltios${sim}.`
 
   if (/velocidad|a cuanto|cuanto vamos|cuanto voy|cuantos km/.test(q)) {
     if (isSimulated) return speed < 3 ? 'Estás parado. Sin OBD no tengo la velocidad real.' : `Según GPS vas a unos ${speed} km/h. Conecta el OBD para datos precisos.`
@@ -279,7 +279,7 @@ function getKittResponse(input, obd, isSimulated) {
   }
 
   if (/temperatura|calor del motor|motor frio|motor caliente|sobrecalent/.test(q))
-    return `Motor a ${temp}°C${sim}. ${temp > 105 ? 'Temperatura elevada, reduce carga.' : temp < 88 ? 'Motor calentando.' : 'Temperatura correcta.'}`
+    return `Motor a ${temp} grados${sim}. ${temp > 105 ? 'Temperatura elevada, reduce carga.' : temp < 88 ? 'Motor calentando.' : 'Temperatura correcta.'}`
 
   if (/bateria|voltaje|alternador/.test(q))
     return `Batería a ${bat}V${sim}. ${bat < 12.4 && speed < 3 ? 'Voltaje bajo en reposo.' : 'Sistema eléctrico correcto.'}`

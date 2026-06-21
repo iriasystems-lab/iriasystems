@@ -45,10 +45,10 @@ export async function getWeatherForecast(lat, lon) {
 
 export function weatherToSpeech(w, lugar) {
   const loc       = lugar ? `En ${lugar}` : 'Ahora mismo aquí'
-  const sensacion = Math.abs(w.sensacion - w.temp) > 2 ? `, sensación térmica de ${w.sensacion}°C` : ''
-  const lluvia    = w.lluvia > 0 ? `, con ${w.lluvia} mm de precipitación` : ''
-  const viento    = w.viento > 30 ? `, viento a ${w.viento} km/h` : ''
-  return `${loc}: ${w.desc}, ${w.temp}°C${sensacion}${lluvia}${viento}.`
+  const sensacion = Math.abs(w.sensacion - w.temp) > 2 ? `, sensación térmica de ${w.sensacion} grados` : ''
+  const lluvia    = w.lluvia > 0 ? `, con ${w.lluvia} milímetros de precipitación` : ''
+  const viento    = w.viento > 30 ? `, viento a ${w.viento} kilómetros por hora` : ''
+  return `${loc}: ${w.desc}, ${w.temp} grados${sensacion}${lluvia}${viento}.`
 }
 
 export function forecastToSpeech(daily, lugar, days = 3) {
