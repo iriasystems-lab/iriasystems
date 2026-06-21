@@ -848,7 +848,7 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
             <span className="truncate">{SPOTIFY_CLIENT_ID}</span>
             <span className="text-[9px] text-green-700 ml-2 flex-shrink-0">✓</span>
           </div>
-          <p className="text-[9px] text-gray-500 mt-1">Redirect URI: https://kitt-ai-agent.netlify.app</p>
+          <p className="text-[9px] text-gray-500 mt-1">Redirect URI: https://kitt-ai-agent.netlify.app/kitt</p>
         </div>
         <button onClick={() => { save(); onSpotifyAuth(SPOTIFY_CLIENT_ID) }}
           className="w-full py-2 font-mono text-xs font-bold text-black bg-green-700 rounded border border-green-500">
@@ -1186,8 +1186,8 @@ export default function Kitt() {
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).get('code')) return
     const redirectUri = window.location.hostname === 'localhost'
-      ? window.location.origin
-      : 'https://kitt-ai-agent.netlify.app'
+      ? `${window.location.origin}/kitt`
+      : 'https://kitt-ai-agent.netlify.app/kitt'
     exchangePkceCode(SPOTIFY_CLIENT_ID, redirectUri).then(token => {
       if (!token) return
       setSpotifyToken(token)
@@ -2135,8 +2135,8 @@ export default function Kitt() {
 
   const handleSpotifyAuth = useCallback(async (clientId) => {
     const redirectUri = window.location.hostname === 'localhost'
-      ? window.location.origin
-      : 'https://kitt-ai-agent.netlify.app'
+      ? `${window.location.origin}/kitt`
+      : 'https://kitt-ai-agent.netlify.app/kitt'
     window.location.href = await buildSpotifyAuthUrl(clientId, redirectUri)
   }, [])
 
