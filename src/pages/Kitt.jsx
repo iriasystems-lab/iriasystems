@@ -64,12 +64,15 @@ function loadSettings() {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     s.voiceId   = KITT_VOICE_ID
     s.apiKey    = ELEVENLABS_KEY
-    if (!s.spotifyId)           s.spotifyId        = SPOTIFY_CLIENT_ID
-    if (!s.userName)            s.userName         = 'Cristian'
-    if (s.speedAlertKmh === undefined) s.speedAlertKmh = 130
-    if (s.silentMode === undefined)    s.silentMode    = false
+    if (!s.spotifyId)                  s.spotifyId        = SPOTIFY_CLIENT_ID
+    if (!s.userName)                   s.userName         = 'Cristian'
+    if (s.speedAlertKmh === undefined) s.speedAlertKmh    = 130
+    if (s.silentMode === undefined)    s.silentMode       = false
+    if (!s.missionCode)                s.missionCode      = ''
+    if (!s.emergencyName)              s.emergencyName    = ''
+    if (!s.emergencyPhone)             s.emergencyPhone   = ''
     return s
-  } catch { return { voiceId: KITT_VOICE_ID, apiKey: ELEVENLABS_KEY, spotifyId: SPOTIFY_CLIENT_ID, userName: 'Cristian', speedAlertKmh: 130, silentMode: false } }
+  } catch { return { voiceId: KITT_VOICE_ID, apiKey: ELEVENLABS_KEY, spotifyId: SPOTIFY_CLIENT_ID, userName: 'Cristian', speedAlertKmh: 130, silentMode: false, missionCode: '', emergencyName: '', emergencyPhone: '' } }
 }
 function saveSettings(s) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch {}
@@ -82,6 +85,20 @@ function getSpotifyToken() {
 const SETUP_KEY = 'kitt_agent_setup'
 const isFirstRun = () => { try { return !localStorage.getItem(SETUP_KEY) } catch { return false } }
 const markSetupDone = () => { try { localStorage.setItem(SETUP_KEY, '1') } catch {} }
+
+// ─── Boot Systems ─────────────────────────────────────────────────────────────
+const getBootSystems = () => {
+  const name = loadSettings().userName.toUpperCase()
+  const pad = Math.max(0, 25 - 10 - name.length)
+  return [
+    { label: 'PROCESADOR NEURAL.........', dep: 'always' },
+    { label: 'SENSORES OBD-II...........', dep: 'obd'    },
+    { label: 'MÓDULO DE VOZ.............', dep: 'always' },
+    { label: 'SISTEMA DE NAVEGACIÓN.....', dep: 'always' },
+    { label: 'DIAGNÓSTICO MOTOR.........', dep: 'obd'    },
+    { label: `INTERFAZ ${name}${'.'.repeat(pad)}`, dep: 'always' },
+  ]
+}
 
 // ─── OBD Scenarios ────────────────────────────────────────────────────────────
 const OBD_SCENARIOS = [
@@ -252,18 +269,11 @@ function OnboardingScreen({ onComplete }) {
 }
 
 // ─── Boot Screen ──────────────────────────────────────────────────────────────
-const BOOT_SYSTEMS = [
-  { label: 'PROCESADOR NEURAL.........', dep: 'always' },
-  { label: 'SENSORES OBD-II...........', dep: 'obd'    },
-  { label: 'MÓDULO DE VOZ.............', dep: 'always' },
-  { label: 'SISTEMA DE NAVEGACIÓN.....', dep: 'always' },
-  { label: 'DIAGNÓSTICO MOTOR.........', dep: 'obd'    },
-  { label: 'INTERFAZ CRISTIAN.........', dep: 'always' },
-]
 function BootScreen({ onComplete, obdConnected }) {
   const [lines, setLines] = useState([])
   const [done,  setDone]  = useState(false)
   useEffect(() => {
+    const BOOT_SYSTEMS = getBootSystems()
     let i = 0
     const tick = () => {
       if (i < BOOT_SYSTEMS.length) { setLines(p => [...p, BOOT_SYSTEMS[i++]]); setTimeout(tick, 320) }
@@ -697,6 +707,9 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
   const [userName,      setUserName]      = useState(saved.userName      || '')
   const [vehicleName,   setVehicleName]   = useState(saved.vehicleName   || '')
   const [baseCity,      setBaseCity]      = useState(saved.baseCity      || '')
+  const [missionCode,   setMissionCode]   = useState(saved.missionCode   || '')
+  const [emergencyName, setEmergencyName] = useState(saved.emergencyName || '')
+  const [emergencyPhone,setEmergencyPhone]= useState(saved.emergencyPhone|| '')
   const [silentMode,    setSilentMode]    = useState(saved.silentMode    || false)
   const [speedAlertKmh, setSpeedAlertKmh] = useState(saved.speedAlertKmh ?? 130)
   const [claudeKey, setClaudeKey] = useState(saved.claudeKey || '')
@@ -710,6 +723,9 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
       userName: userName.trim(),
       vehicleName: vehicleName.trim(),
       baseCity: baseCity.trim(),
+      missionCode: missionCode.trim(),
+      emergencyName: emergencyName.trim(),
+      emergencyPhone: emergencyPhone.trim(),
       silentMode,
       speedAlertKmh: Number(speedAlertKmh) || 130,
       claudeKey: claudeKey.trim(),
@@ -748,8 +764,22 @@ function SettingsPanel({ onClose, onSpotifyAuth, onExportTraining, obdStatus, on
         {/* ── AGENT IDENTITY ── */}
         <SectionHeader color="text-orange-500" borderColor="border-orange-900">IDENTIDAD DEL AGENTE</SectionHeader>
         <SettingsField label="NOMBRE DEL AGENTE" val={userName} set={setUserName} ph="Tu nombre" hint="Kitt se dirige a ti siempre por este nombre." />
+        <SettingsField label="INDICATIVO DE MISIÓN (opcional)" val={missionCode} set={setMissionCode} ph="ej: Sombra, Raptor, Eclipse..." hint='Kitt usará este indicativo en momentos críticos. Ej: "Raptor, anomalía detectada."' />
         <SettingsField label="NOMBRE DEL VEHÍCULO (opcional)" val={vehicleName} set={setVehicleName} ph="ej: Fantasma, Sombra..." hint='Kitt llamará a tu coche por este nombre. Ej: "El Fantasma está listo."' />
         <SettingsField label="CIUDAD BASE (opcional)" val={baseCity} set={setBaseCity} ph="ej: Madrid, Barcelona..." hint="Kitt conoce tu base y puede usarla en rutas y comentarios." />
+
+        {/* ── EMERGENCY CONTACT ── */}
+        <SectionHeader color="text-red-400" borderColor="border-red-900">PROTOCOLO DE EMERGENCIA</SectionHeader>
+        <SettingsField label="NOMBRE DEL CONTACTO" val={emergencyName} set={setEmergencyName} ph="ej: María, Papá, Doctor..." hint='Kitt anunciará este nombre al iniciar la llamada de emergencia.' />
+        <SettingsField label="TELÉFONO DE EMERGENCIA" val={emergencyPhone} set={setEmergencyPhone} ph="+34 600 000 000" hint='Di "emergencia" o "llama a mi contacto" y Kitt marcará este número.' />
+        {emergencyPhone && (
+          <button
+            onClick={() => { const a = document.createElement('a'); a.href = `tel:${emergencyPhone.replace(/\s+/g,'')}`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }}
+            className="w-full py-2 font-mono text-xs font-bold border rounded"
+            style={{ color: '#f87171', borderColor: '#7f1d1d' }}>
+            ▶ PROBAR LLAMADA — {emergencyName || emergencyPhone}
+          </button>
+        )}
 
         {/* ── BEHAVIOUR ── */}
         <SectionHeader color="text-orange-500" borderColor="border-orange-900">PROTOCOLO DE COMPORTAMIENTO</SectionHeader>
@@ -1542,6 +1572,29 @@ export default function Kitt() {
 
     const isSimulated = obdStatusRef.current !== 'connected'
 
+    // ── Emergency call — highest priority after silence commands ─────────────
+    {
+      const qEmerg = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      if (/\b(emergencia|sos|auxilio|llama(r)? a (mi )?(contacto|emergencias?|socorro)|protocolo de emergencia|necesito ayuda urgente)\b/.test(qEmerg)) {
+        const { emergencyName, emergencyPhone } = loadSettings()
+        if (emergencyPhone) {
+          const phone = emergencyPhone.replace(/\s+/g, '')
+          const contactLabel = emergencyName || 'tu contacto de emergencia'
+          const msg = `Iniciando protocolo de emergencia. Conectando con ${contactLabel}.`
+          setMessages(prev => [...prev, { role: 'kitt', text: msg, ts: Date.now() }])
+          speak(msg)
+          const a = document.createElement('a')
+          a.href = `tel:${phone}`
+          document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        } else {
+          const msg = 'No hay ningún contacto de emergencia configurado. Añade un número de teléfono en ajustes, sección protocolo de emergencia.'
+          setMessages(prev => [...prev, { role: 'kitt', text: msg, ts: Date.now() }])
+          speak(msg)
+        }
+        return
+      }
+    }
+
     // ── Trivia — active game commands (answer, next, stop, topic change) ────
     const qTrivia = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     if (triviaModeRef.current) {
@@ -1768,12 +1821,14 @@ export default function Kitt() {
           elev:    activeRoute?.elev ?? null,
         } : null
 
+        const s = loadSettings()
         response = await askKitt(text, obdRef.current, claudeKey, isSimulated, {
           location: userPosRef.current ? `${userPosRef.current.lat.toFixed(3)},${userPosRef.current.lon.toFixed(3)}` : null,
           routeCtx,
           history: messagesRef.current,
           gpsPos:  userPosRef.current ?? null,
-          userName: loadSettings().userName,
+          userName:    s.userName,
+          missionCode: s.missionCode,
         })
         if (!response) response = getKittResponse(text, obdRef.current, isSimulated)
       } catch (err) {

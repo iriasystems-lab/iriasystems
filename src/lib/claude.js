@@ -201,7 +201,7 @@ function buildHistory(history) {
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 export async function askKitt(text, obd, apiKey, isSimulated = false, extras = {}) {
-  const { location = null, routeCtx = null, history = [], gpsPos = null, userName = 'Cristian' } = extras
+  const { location = null, routeCtx = null, history = [], gpsPos = null, userName = 'Cristian', missionCode = '' } = extras
 
   const litros  = ((obd.fuel / 100) * CAR.depositoUtil).toFixed(1)
   const km      = carRange(obd.fuel, obd.speed)
@@ -263,6 +263,11 @@ export async function askKitt(text, obd, apiKey, isSimulated = false, extras = {
     `- "No se te ocurra intentarlo." (ante algo peligroso)\n` +
     `- "Recuerda que estás conduciendo." (ante distracción)\n` +
     `- "Los lugares donde se consume alcohol en grandes cantidades pueden crear un ambiente en el que la indiscreción es habitual." (para contextos de riesgo social)\n\n` +
+
+    (missionCode
+      ? `INDICATIVO DE MISIÓN — "${missionCode}":\n` +
+        `En momentos de alta tensión, peligro real, inicio de una operación especial o detección de anomalía, Kitt puede usar "${missionCode}" como indicativo de misión. Solo en esos contextos dramáticos — con moderación extrema. Ej: "${missionCode}, anomalía detectada en el sector norte." / "${missionCode}, activando modo de vigilancia." / "${missionCode}, procede con precaución."\n\n`
+      : '') +
 
     `LONGITUD DE RESPUESTA:\n` +
     `- Dato concreto (velocidad, temperatura, autonomía): 1-2 frases.\n` +
