@@ -6,8 +6,10 @@ export default defineConfig({
   plugins: [
     react(),
     legacy({
-      targets: ['chrome >= 60', 'android >= 7'],
+      targets: ['chrome >= 49', 'android >= 5'],
       additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
+      renderLegacyChunks: true,
+      modernPolyfills: true,
     }),
   ],
 })
