@@ -11,26 +11,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <meta name="description" content="K.I.T.T. — Copiloto inteligente para tu coche." />
-    <meta property="og:title" content="KITT" />
-    <meta property="og:description" content="Copiloto IA para tu coche conectado via OBD-II." />
-    <meta property="og:image" content="/Logo-kitt-app.jpeg" />
-    <!-- Google Fonts cargadas con display=swap y sin bloquear el render -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <title>KITT</title>
-    <!-- Fondo negro inmediato: evita flash azul/blanco antes de que cargue CSS -->
+
+    <!-- ══ ESTILOS CRÍTICOS ══ Fondo negro ANTES de que cargue ningún JS o CSS -->
     <style>
-      html, body, #root {
-        background-color: #0a0a0a !important;
-        color: #f5f0e8;
-        margin: 0; padding: 0;
-        min-height: 100vh;
-        font-family: 'Space Grotesk', Arial, sans-serif;
-      }
+      html,body,#root{background:#0a0a0a!important;margin:0;padding:0;min-height:100vh;color:#f0ebe0;font-family:'Space Grotesk',Arial,sans-serif}
+      #kitt-boot{position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999}
+      #kitt-boot-title{font-size:clamp(32px,8vw,64px);font-weight:700;color:#c9a227;letter-spacing:.2em;margin-bottom:12px}
+      #kitt-boot-bar{width:180px;height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;margin-bottom:16px}
+      #kitt-boot-fill{height:100%;width:0%;background:linear-gradient(90deg,#c9a227,#e87c2a);border-radius:2px;animation:kitt-load 2s ease-in-out forwards}
+      @keyframes kitt-load{0%{width:0%}60%{width:80%}100%{width:95%}}
+      #kitt-boot-sub{font-size:11px;color:#666;letter-spacing:.15em;text-transform:uppercase}
+      #kitt-error{position:fixed;inset:0;background:#0a0a0a;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;z-index:9999}
+      #kitt-error-title{font-size:28px;color:#c9a227;letter-spacing:.2em;margin-bottom:8px}
+      #kitt-error-msg{font-size:11px;color:#666;max-width:340px;word-break:break-all;margin-bottom:20px;background:#111;padding:10px;border-radius:4px;border:1px solid #222}
+      #kitt-error-btn{background:#c9a227;color:#000;border:none;padding:10px 28px;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.1em}
     </style>
+
+    <!-- ══ POLYFILLS ══ Se ejecutan ANTES de Vite bundle — críticos para WebViews de coche -->
+    <script>
+      // ResizeObserver — requerido por Framer Motion
+      if (!window.ResizeObserver) {
+        window.ResizeObserver = function ResizeObserver(cb) {
+          this._cb = cb; this._els = [];
+        };
+        window.ResizeObserver.prototype.observe = function() {};
+        window.ResizeObserver.prototype.unobserve = function() {};
+        window.ResizeObserver.prototype.disconnect = function() {};
+      }
+      // IntersectionObserver
+      if (!window.IntersectionObserver) {
+        window.IntersectionObserver = function IntersectionObserver(cb) {
+          this._cb = cb;
+        };
+        window.IntersectionObserver.prototype.observe = function() {};
+        window.IntersectionObserver.prototype.unobserve = function() {};
+        window.IntersectionObserver.prototype.disconnect = function() {};
+      }
+      // queueMicrotask
+      if (!window.queueMicrotask) {
+        window.queueMicrotask = function(fn) { Promise.resolve().then(fn); };
+      }
+      // structuredClone
+      if (!window.structuredClone) {
+        window.structuredClone = function(obj) {
+          try { return JSON.parse(JSON.stringify(obj)); } catch(e) { return obj; }
+        };
+      }
+      // matchMedia — requerido por Framer Motion media queries
+      if (!window.matchMedia) {
+        window.matchMedia = function() {
+          return {
+            matches: false, media: '', onchange: null,
+            addListener: function() {}, removeListener: function() {},
+            addEventListener: function() {}, removeEventListener: function() {},
+            dispatchEvent: function() { return false; }
+          };
+        };
+      }
+      // CustomEvent
+      if (typeof window.CustomEvent !== 'function') {
+        function CustomEvent(e, p) {
+          p = p || { bubbles: false, cancelable: false, detail: null };
+          var evt = document.createEvent('CustomEvent');
+          evt.initCustomEvent(e, p.bubbles, p.cancelable, p.detail);
+          return evt;
+        }
+        CustomEvent.prototype = window.Event.prototype;
+        window.CustomEvent = CustomEvent;
+      }
+      // Promise.allSettled
+      if (!Promise.allSettled) {
+        Promise.allSettled = function(ps) {
+          return Promise.all(ps.map(function(p) {
+            return Promise.resolve(p).then(
+              function(v) { return { status: 'fulfilled', value: v }; },
+              function(e) { return { status: 'rejected', reason: e }; }
+            );
+          }));
+        };
+      }
+
+      // ── Captura de errores globales ──────────────────────────────────────────
+      window.addEventListener('error', function(e) {
+        var el = document.getElementById('kitt-error');
+        var msg = document.getElementById('kitt-error-msg');
+        if (el && msg) {
+          msg.textContent = (e.message || 'Error desconocido') + '\n' + (e.filename || '') + ':' + (e.lineno || '');
+          el.style.display = 'flex';
+          var boot = document.getElementById('kitt-boot');
+          if (boot) boot.style.display = 'none';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var el = document.getElementById('kitt-error');
+        var msg = document.getElementById('kitt-error-msg');
+        if (el && msg) {
+          msg.textContent = 'Promise rechazada: ' + (e.reason ? (e.reason.message || String(e.reason)) : 'desconocido');
+          el.style.display = 'flex';
+          var boot = document.getElementById('kitt-boot');
+          if (boot) boot.style.display = 'none';
+        }
+      });
+    </script>
   </head>
+
   <body style="background-color:#0a0a0a">
+
+    <!-- ══ PANTALLA DE ARRANQUE ══ Visible inmediatamente, oculta cuando React monta -->
+    <div id="kitt-boot">
+      <div id="kitt-boot-title">K·I·T·T·</div>
+      <div id="kitt-boot-bar"><div id="kitt-boot-fill"></div></div>
+      <div id="kitt-boot-sub">Inicializando sistemas...</div>
+    </div>
+
+    <!-- ══ PANTALLA DE ERROR ══ Visible solo si JS falla -->
+    <div id="kitt-error">
+      <div id="kitt-error-title">K·I·T·T·</div>
+      <div style="color:#e87c2a;font-size:13px;margin-bottom:12px">Error de inicialización</div>
+      <div id="kitt-error-msg"></div>
+      <button id="kitt-error-btn" onclick="window.location.reload()">REINTENTAR</button>
+    </div>
+
     <div id="root" style="background-color:#0a0a0a;min-height:100vh"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
