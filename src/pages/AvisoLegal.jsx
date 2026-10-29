@@ -1,7 +1,5 @@
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-import Footer from '../components/Footer'
 
 export default function AvisoLegal() {
   return (
@@ -13,7 +11,6 @@ export default function AvisoLegal() {
         <meta name="robots" content="noindex, follow" />
       </Helmet>
 
-      <Navbar />
 
       <main className="section-dark min-h-screen pt-28 pb-20 px-6">
         <div className="max-w-3xl mx-auto prose prose-invert text-cream/70 text-sm leading-relaxed">
@@ -70,7 +67,6 @@ export default function AvisoLegal() {
         </div>
       </main>
 
-      <Footer />
     </>
   )
 }

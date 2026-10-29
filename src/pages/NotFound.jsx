@@ -1,7 +1,5 @@
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-import Footer from '../components/Footer'
 
 export default function NotFound() {
   return (
@@ -11,7 +9,6 @@ export default function NotFound() {
         <meta name="robots" content="noindex, follow" />
       </Helmet>
 
-      <Navbar />
 
       <main className="section-dark min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-md">
@@ -29,7 +26,6 @@ export default function NotFound() {
         </div>
       </main>
 
-      <Footer />
     </>
   )
 }

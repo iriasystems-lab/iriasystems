@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import CookieBanner from './components/CookieBanner'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
 
 const Home        = lazy(() => import('./pages/Home'))
 const Servicios   = lazy(() => import('./pages/Servicios'))
@@ -21,6 +23,16 @@ function PageLoader() {
   )
 }
 
+function Layout({ children }) {
+  return (
+    <>
+      <Navbar />
+      {children}
+      <Footer />
+    </>
+  )
+}
+
 export default function App() {
   return (
     <HelmetProvider>
@@ -32,10 +44,10 @@ export default function App() {
             <Route path="/servicios/:slug"       element={<ServicePage />} />
             <Route path="/sobre-iryna"           element={<SobreMi />} />
             <Route path="/contacto"              element={<Contacto />} />
-            <Route path="/aviso-legal"           element={<AvisoLegal />} />
-            <Route path="/politica-privacidad"   element={<Privacidad />} />
-            <Route path="/politica-cookies"      element={<Cookies />} />
-            <Route path="*"                      element={<NotFound />} />
+            <Route path="/aviso-legal"           element={<Layout><AvisoLegal /></Layout>} />
+            <Route path="/politica-privacidad"   element={<Layout><Privacidad /></Layout>} />
+            <Route path="/politica-cookies"      element={<Layout><Cookies /></Layout>} />
+            <Route path="*"                      element={<Layout><NotFound /></Layout>} />
           </Routes>
           <CookieBanner />
         </Suspense>
