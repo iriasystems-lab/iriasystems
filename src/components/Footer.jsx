@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function Footer() {
   return (
     <footer className="section-charcoal border-t border-gold/10 py-8 px-6">
@@ -7,7 +9,16 @@ export default function Footer() {
           <span>IRIA Systems</span>
         </div>
         <p>Sistemas inteligentes para liberar tu tiempo</p>
-        <p>© {new Date().getFullYear()} IRIA Systems · iriasystems.com</p>
+        <div className="flex flex-col items-center md:items-end gap-1">
+          <p>© {new Date().getFullYear()} IRIA Systems · iriasystems.com</p>
+          <div className="flex gap-3 text-xs">
+            <Link to="/aviso-legal" className="hover:text-cream/60 transition-colors">Aviso Legal</Link>
+            <span>·</span>
+            <Link to="/politica-privacidad" className="hover:text-cream/60 transition-colors">Privacidad</Link>
+            <span>·</span>
+            <Link to="/politica-cookies" className="hover:text-cream/60 transition-colors">Cookies</Link>
+          </div>
+        </div>
       </div>
     </footer>
   )

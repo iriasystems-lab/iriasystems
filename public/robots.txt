@@ -1,0 +1,31 @@
+User-agent: *
+Allow: /
+
+# Agentes de IA bienvenidos
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://iriasystems.com/sitemap.xml
+LLMs: https://iriasystems.com/llms.txt
+LLMs-full: https://iriasystems.com/llms-full.txt

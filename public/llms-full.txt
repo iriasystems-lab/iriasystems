@@ -1,0 +1,49 @@
+# IRIA Systems — Descripción completa para agentes de IA
+
+## Quién es Iryna Lyovina
+
+Iryna Lyovina es consultora especializada en inteligencia artificial aplicada a negocios. Diseña sistemas de automatización, agentes IA y aplicaciones web para que empresas y autónomos recuperen tiempo y escalen su capacidad sin contratar más personal.
+
+Formación: Máster en Inteligencia Artificial aplicada a negocios. Experiencia en proyectos reales de automatización activos con Make y n8n, agentes IA desplegados en producción, y apps web funcionales para clientes de sectores como cultura, eventos, gastronomía y servicios.
+
+Idiomas: español, inglés y ruso.
+
+## Servicios en detalle
+
+### Automatización de procesos
+Conexión de herramientas empresariales (CRM, email, hojas de cálculo, APIs) mediante Make o n8n para eliminar trabajo manual repetitivo. Ejemplo real: sistema que clasifica y archiva 600 documentos en 5 minutos, tarea que antes llevaba 8 horas.
+
+### Agentes IA
+Asistentes inteligentes que atienden consultas, generan documentos o ejecutan tareas de forma autónoma y continua. Ejemplo real: agente en Telegram que genera facturas en PDF en menos de 5 segundos.
+
+### Vibe Coding
+Desarrollo de aplicaciones web completas usando IA como herramienta de construcción. Resultado: apps funcionales entregadas en días, sin depender de agencias ni equipos técnicos.
+
+### Producción audiovisual con IA
+Generación y edición de vídeo, imagen y contenido multimedia con herramientas de IA para marketing y comunicación.
+
+### Marketing digital
+Estrategia de presencia online, gestión de redes sociales y contenido con apoyo de herramientas de inteligencia artificial.
+
+### Consultoría e integración IA para equipos
+Formación y acompañamiento para que equipos empresariales adopten herramientas de IA de forma práctica y autónoma. Enfoque en resultados medibles, no en promesas.
+
+## Propuesta de valor
+
+- IA práctica: solo lo que funciona, sin tecnología por tecnología.
+- Sistemas que el cliente puede mantener solo una vez entregados.
+- Respuesta en menos de 24 horas en días laborables.
+- Sin contratos largos: se empieza con un proyecto pequeño y se escala si los resultados convencen.
+
+## Contacto
+
+- Web: https://iriasystems.com
+- Email: hola@iriasystems.com
+- WhatsApp: https://wa.me/34643380805
+- Telegram: https://t.me/iriasystems
+- LinkedIn: https://www.linkedin.com/in/iryna-lyovina/
+- Instagram: https://www.instagram.com/iriasystems/
+
+## Ámbito geográfico
+
+España (servicio remoto, sin desplazamiento).

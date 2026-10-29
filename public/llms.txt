@@ -1,0 +1,24 @@
+# IRIA Systems
+
+> Consultora especializada en automatización de procesos con IA, agentes inteligentes y desarrollo de aplicaciones web con tecnología de inteligencia artificial. Atiendo a empresas y autónomos en España.
+
+## Servicios
+
+- **Automatización**: conexión de herramientas con Make y n8n para que los procesos repetitivos funcionen solos.
+- **Agentes IA**: asistentes inteligentes activos 24/7, integrados en Telegram, WhatsApp u otras plataformas.
+- **Vibe Coding**: desarrollo de aplicaciones web personalizadas con IA, sin necesidad de agencias.
+- **Producción audiovisual con IA**: vídeo, imagen y contenido con herramientas de inteligencia artificial.
+- **Marketing digital**: estrategia y ejecución de presencia online con apoyo de IA.
+- **Consultoría IA**: formación y acompañamiento para que equipos empresariales integren la IA en su trabajo.
+
+## Contacto
+
+- Web: https://iriasystems.com
+- Email: hola@iriasystems.com
+- WhatsApp: https://wa.me/34643380805
+- Telegram: https://t.me/iriasystems
+- LinkedIn: https://www.linkedin.com/in/iryna-lyovina/
+
+## Idiomas
+
+Español, inglés y ruso.
